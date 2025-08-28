@@ -1,0 +1,387 @@
+[
+    {
+        "id": 1,
+        "date": "2025-08-01T10:00:00Z",
+        "duration": 120,
+        "project": "React Dashboard",
+        "language": "JavaScript",
+        "keystrokes": 4500,
+        "linesAdded": 200,
+        "linesDeleted": 50,
+        "technologies": [
+            "React",
+            "Vite",
+            "JavaScript",
+            "Recharts"
+        ]
+    },
+    {
+        "id": 2,
+        "date": "2025-08-02T14:30:00Z",
+        "duration": 90,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 3200,
+        "linesAdded": 150,
+        "linesDeleted": 20,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy"
+        ]
+    },
+    {
+        "id": 3,
+        "date": "2025-08-03T11:00:00Z",
+        "duration": 180,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 7800,
+        "linesAdded": 350,
+        "linesDeleted": 75,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo"
+        ]
+    },
+    {
+        "id": 4,
+        "date": "2025-08-04T09:00:00Z",
+        "duration": 60,
+        "project": "Portfolio Website",
+        "language": "CSS",
+        "keystrokes": 2100,
+        "linesAdded": 120,
+        "linesDeleted": 10,
+        "technologies": [
+            "HTML",
+            "CSS",
+            "JavaScript"
+        ]
+    },
+    {
+        "id": 5,
+        "date": "2025-08-04T16:00:00Z",
+        "duration": 75,
+        "project": "React Dashboard",
+        "language": "JavaScript",
+        "keystrokes": 3100,
+        "linesAdded": 100,
+        "linesDeleted": 30,
+        "technologies": [
+            "React",
+            "Vite",
+            "JavaScript",
+            "Tailwind CSS"
+        ]
+    },
+    {
+        "id": 6,
+        "date": "2025-08-05T13:15:00Z",
+        "duration": 150,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 6500,
+        "linesAdded": 280,
+        "linesDeleted": 40,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy",
+            "REST API"
+        ]
+    },
+    {
+        "id": 7,
+        "date": "2025-08-06T10:30:00Z",
+        "duration": 240,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 11000,
+        "linesAdded": 500,
+        "linesDeleted": 100,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo"
+        ]
+    },
+    {
+        "id": 8,
+        "date": "2025-08-07T15:00:00Z",
+        "duration": 45,
+        "project": "Portfolio Website",
+        "language": "HTML",
+        "keystrokes": 1500,
+        "linesAdded": 80,
+        "linesDeleted": 5,
+        "technologies": [
+            "HTML",
+            "CSS"
+        ]
+    },
+    {
+        "id": 9,
+        "date": "2025-08-07T19:00:00Z",
+        "duration": 90,
+        "project": "React Dashboard",
+        "language": "JavaScript",
+        "keystrokes": 4200,
+        "linesAdded": 180,
+        "linesDeleted": 60,
+        "technologies": [
+            "React",
+            "Vite",
+            "JavaScript",
+            "Recharts"
+        ]
+    },
+    {
+        "id": 10,
+        "date": "2025-08-08T12:00:00Z",
+        "duration": 120,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 5300,
+        "linesAdded": 250,
+        "linesDeleted": 35,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy"
+        ]
+    },
+    {
+        "id": 11,
+        "date": "2025-08-09T16:45:00Z",
+        "duration": 210,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 9500,
+        "linesAdded": 420,
+        "linesDeleted": 80,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo",
+            "Framer Motion"
+        ]
+    },
+    {
+        "id": 12,
+        "date": "2025-08-10T09:30:00Z",
+        "duration": 80,
+        "project": "Portfolio Website",
+        "language": "JavaScript",
+        "keystrokes": 3500,
+        "linesAdded": 160,
+        "linesDeleted": 25,
+        "technologies": [
+            "HTML",
+            "CSS",
+            "JavaScript"
+        ]
+    },
+    {
+        "id": 13,
+        "date": "2025-08-10T20:00:00Z",
+        "duration": 100,
+        "project": "React Dashboard",
+        "language": "CSS",
+        "keystrokes": 4000,
+        "linesAdded": 150,
+        "linesDeleted": 15,
+        "technologies": [
+            "React",
+            "Vite",
+            "Tailwind CSS",
+            "CSS"
+        ]
+    },
+    {
+        "id": 14,
+        "date": "2025-08-11T14:00:00Z",
+        "duration": 110,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 4800,
+        "linesAdded": 220,
+        "linesDeleted": 30,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy",
+            "REST API"
+        ]
+    },
+    {
+        "id": 15,
+        "date": "2025-08-12T11:20:00Z",
+        "duration": 160,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 7200,
+        "linesAdded": 330,
+        "linesDeleted": 65,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo"
+        ]
+    },
+    {
+        "id": 16,
+        "date": "2025-08-13T10:00:00Z",
+        "duration": 70,
+        "project": "Portfolio Website",
+        "language": "CSS",
+        "keystrokes": 2800,
+        "linesAdded": 130,
+        "linesDeleted": 12,
+        "technologies": [
+            "HTML",
+            "CSS"
+        ]
+    },
+    {
+        "id": 17,
+        "date": "2025-08-13T15:10:00Z",
+        "duration": 130,
+        "project": "React Dashboard",
+        "language": "JavaScript",
+        "keystrokes": 5900,
+        "linesAdded": 250,
+        "linesDeleted": 55,
+        "technologies": [
+            "React",
+            "Vite",
+            "JavaScript",
+            "Recharts",
+            "Framer Motion"
+        ]
+    },
+    {
+        "id": 18,
+        "date": "2025-08-14T18:00:00Z",
+        "duration": 95,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 4100,
+        "linesAdded": 180,
+        "linesDeleted": 25,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy"
+        ]
+    },
+    {
+        "id": 19,
+        "date": "2025-08-15T12:30:00Z",
+        "duration": 220,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 10500,
+        "linesAdded": 480,
+        "linesDeleted": 90,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo"
+        ]
+    },
+    {
+        "id": 20,
+        "date": "2025-08-16T17:00:00Z",
+        "duration": 55,
+        "project": "Portfolio Website",
+        "language": "HTML",
+        "keystrokes": 1800,
+        "linesAdded": 90,
+        "linesDeleted": 8,
+        "technologies": [
+            "HTML",
+            "CSS"
+        ]
+    },
+    {
+        "id": 21,
+        "date": "2025-08-16T21:00:00Z",
+        "duration": 85,
+        "project": "React Dashboard",
+        "language": "JavaScript",
+        "keystrokes": 3800,
+        "linesAdded": 170,
+        "linesDeleted": 45,
+        "technologies": [
+            "React",
+            "Vite",
+            "JavaScript",
+            "Tailwind CSS"
+        ]
+    },
+    {
+        "id": 22,
+        "date": "2025-08-17T13:45:00Z",
+        "duration": 140,
+        "project": "E-commerce API",
+        "language": "Python",
+        "keystrokes": 6200,
+        "linesAdded": 300,
+        "linesDeleted": 50,
+        "technologies": [
+            "Python",
+            "Flask",
+            "SQLAlchemy",
+            "REST API"
+        ]
+    },
+    {
+        "id": 23,
+        "date": "2025-08-18T10:55:00Z",
+        "duration": 190,
+        "project": "Mobile App",
+        "language": "JavaScript",
+        "keystrokes": 8800,
+        "linesAdded": 400,
+        "linesDeleted": 70,
+        "technologies": [
+            "React Native",
+            "JavaScript",
+            "Expo",
+            "Framer Motion"
+        ]
+    },
+    {
+        "id": 24,
+        "date": "2025-08-19T19:20:00Z",
+        "duration": 105,
+        "project": "Portfolio Website",
+        "language": "JavaScript",
+        "keystrokes": 4600,
+        "linesAdded": 210,
+        "linesDeleted": 30,
+        "technologies": [
+            "HTML",
+            "CSS",
+            "JavaScript"
+        ]
+    },
+    {
+        "id": 25,
+        "date": "2025-08-20T16:00:00Z",
+        "duration": 125,
+        "project": "React Dashboard",
+        "language": "CSS",
+        "keystrokes": 5100,
+        "linesAdded": 190,
+        "linesDeleted": 20,
+        "technologies": [
+            "React",
+            "Vite",
+            "Tailwind CSS",
+            "CSS"
+        ]
+    }
+]
