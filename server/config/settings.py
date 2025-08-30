@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -41,16 +42,27 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Allauth for OAuth
+
+    'django_extensions',
+
+    'django.contrib.sites',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    # 'rest_framework.authtoken',
     'allauth',
     'allauth.account',
+    'allauth.headless',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
+    # 'dj_rest_auth',
+    # 'dj_rest_auth.registration',
     # My apps
     'users',
     # 'events',
     # 'dashboard',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,7 +72,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #Allauth middleware
+    # Allauth middleware
     'allauth.account.middleware.AccountMiddleware',
 ]
 
@@ -73,13 +85,10 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
-                'django.template.context_processors.media',
-                'django.template.context_processors.static',
-                'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -120,18 +129,75 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Auth
-SITE_ID = 1
+# --- ALLAUTH & API SETTINGS ---
 
+# 1. FRONTEND CONFIGURATION
+# ------------------------------------------------------------------------------
+# The base URL of your React/Vue/etc. frontend application
+FRONTEND_URL = "http://localhost:3000"
+
+# These are the URLs that Django will generate in emails (e.g., for verification).
+# Your frontend application MUST have routes that can handle these URLs.
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
+    "account_reset_password_from_key": f"{FRONTEND_URL}/password-reset/{{key}}",
+}
+
+# 2. DJANGO REST FRAMEWORK & JWT CONFIGURATION
+# ------------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "UPDATE_LAST_LOGIN": False,
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,  # Uses your project's SECRET_KEY
+    "VERIFYING_KEY": "",
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JSON_ENCODER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+
+    "JTI_CLAIM": "jti",
+}
+
+# 3. ALLAUTH CONFIGURATION
+# ------------------------------------------------------------------------------
+# Required for allauth to work
+SITE_ID = 1
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # default
     'allauth.account.auth_backends.AuthenticationBackend',  # allauth
 ]
 
-# Redirect URLs
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
+# This is the key setting that tells allauth to use our custom JWT strategy,
+# which prevents server-side sessions from being created.
+HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 
+# Basic account setup
+ACCOUNT_LOGIN_METHODS = ["email"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+
+# Social Account Providers (e.g., Google)
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
@@ -144,6 +210,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# SMTP Configs
+# This will make it so that the email is outputted to the terminal by default.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
