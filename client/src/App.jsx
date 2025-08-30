@@ -10,7 +10,7 @@ import ReportsPage from "./pages/ReportsPage";
 import LoginPage from "./pages/LoginPage";
 import Navbar from "./components/Navbar";
 import ThemeProvider from './context/ThemeContext';
-
+import SignupPage from "./pages/SignupPage";
 // Import your data source
 import codingData from './data/data.json';
 
@@ -20,6 +20,7 @@ export default function App() {
 
     const [selectedProject, setSelectedProject] = useState([]);
     const location = useLocation();
+    const [currentUser, setCurrentUser] = useState(null);
 
     // 2. The theme effect also lives here
 
@@ -53,7 +54,7 @@ export default function App() {
         // The React Fragment <> is perfect for the root
         <ThemeProvider>
             {/* The Navbar receives the current path to hide the active link */}
-            <Navbar currentPath={location.pathname} />
+            <Navbar currentPath={location.pathname} user={currentUser} />
 
             {/* AnimatePresence manages the page transitions */}
             <AnimatePresence mode='wait'>
@@ -78,6 +79,7 @@ export default function App() {
                     <Route path={"/users"} element={<UsersPage />} />
                     <Route path={"/settings"} element={<SettingsPage />} />
                     <Route path={"/login"} element={<LoginPage />} />
+                    <Route path={"/signup"} element={<SignupPage />} />
 
                 </Routes>
             </AnimatePresence>

@@ -63,18 +63,17 @@ export default function DashboardPage({
       // A simple fade for the overall page container
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
       <div className="max-w-6xl mx-auto px-4 pb-16">
         <header className="flex justify-between items-center my-8">
           {/* The title participates in the shared layout animation */}
-          <motion.h1
-            layoutId="dashboard-title"
+          <h1
+
             className="text-3xl font-bold text-gray-900 dark:text-white"
           >
             Dashboard
-          </motion.h1>
+          </h1>
 
         </header>
 

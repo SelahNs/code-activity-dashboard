@@ -1,10 +1,26 @@
+import UserIcon from '../icons/UserIcon';
+import BriefcaseIcon from '../icons/BriefcaseIcon';
+import CodeIcon from '../icons/CodeIcon';
+import GlobeIcon from '../icons/GlobeIcon';
+import LayersIcon from '../icons/LayersIcon';
+import LifeBuoyIcon from '../icons/LifeBuoyIcon';
+import TargetIcon from '../icons/TargetIcon';
+import CpuChipIcon from '../icons/CpuChipIcon';
+
 export const avatarOptions = [
-    'https://img.icons8.com/color/48/000000/avatar.png',
-    'https://img.icons8.com/color/48/000000/guest-male.png',
-    'https://img.icons8.com/color/48/000000/user-female-circle.png',
-    'https://img.icons8.com/color/48/000000/user-male-circle.png',
-    'https://img.icons8.com/color/48/000000/cat-profile.png',
-    'https://img.icons8.com/officel/48/dog.png',
-    'https://img.icons8.com/color/48/000000/anonymous-mask.png',
-    'https://img.icons8.com/fluency/48/c-3po.png'
+    { id: 'user', Component: UserIcon },
+    { id: 'briefcase', Component: BriefcaseIcon },
+    { id: 'code', Component: CodeIcon },
+    { id: 'globe', Component: GlobeIcon },
+    { id: 'layers', Component: LayersIcon },
+    { id: 'life-buoy', Component: LifeBuoyIcon },
+    { id: 'target', Component: TargetIcon },
+    { id: 'cpu-chip', Component: CpuChipIcon },
 ];
+export function getAvatarComponent(avatarId) {
+    if (!avatarId) return UserIcon;
+
+    const selectedOption = avatarOptions.find(opt => opt.id === avatarId);
+
+    return selectedOption ? selectedOption.Component : UserIcon;
+}
