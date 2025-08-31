@@ -1,24 +1,32 @@
+// // const [formData, setFormData] = useState({
+//         fullName: '',
+//         username: '',
+//         bio: '',
+//         avatarId: '',
+//         avatarUrl: '',
+//         isHireable: false,
+//         email: 'user@example.com', // Placeholder until auth
+//         socialLinks: { github: '', linkedin: '', twitter: '' }
+//     });
 // src/pages/SettingsPage.jsx
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppearanceSettings from "../components/AppearanceSettings";
 import ProfileSettings from "../components/ProfileSettings";
 import ProfileDisplay from "../components/ProfileDisplay";
 import { profileSchema } from "../lib/validation"; // Make sure this path is correct
 
-export default function SettingsPage() {
+export default function SettingsPage({ user, onProfileUpdate }) {
     // All state is correctly defined
-    const [formData, setFormData] = useState({
-        fullName: '',
-        username: '',
-        bio: '',
-        avatarId: '',
-        avatarUrl: '',
-        isHireable: false,
-        email: 'user@example.com', // Placeholder until auth
-        socialLinks: { github: '', linkedin: '', twitter: '' }
-    });
+
+
+    const [draftProfile, setDraftProfile] = useState(user)
+
+    useEffect(() => {
+        setDraftProfile(user);
+    }, [user]);
+
     const [formErrors, setFormErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [saveStatus, setSaveStatus] = useState('idle');
@@ -33,7 +41,7 @@ export default function SettingsPage() {
 
     // --- Event Handlers (Now Correctly Handling Validation and State) ---
     const updateAndValidate = (newData) => {
-        setFormData(newData);
+        setDraftProfile(newData);
         setFormErrors(validate(newData));
     };
 
@@ -41,15 +49,15 @@ export default function SettingsPage() {
         if (saveStatus === 'error') setSaveStatus('idle');
         const { name, value, type, checked } = e.target;
         const newValue = type === 'checkbox' ? checked : value;
-        updateAndValidate({ ...formData, [name]: newValue });
+        updateAndValidate({ ...draftProfile, [name]: newValue });
     };
 
     const handleSocialChange = (e) => {
         if (saveStatus === 'error') setSaveStatus('idle');
         const { name, value } = e.target;
         const updatedData = {
-            ...formData,
-            socialLinks: { ...formData.socialLinks, [name]: value }
+            ...draftProfile,
+            socialLinks: { ...draftProfile.socialLinks, [name]: value }
         };
         updateAndValidate(updatedData);
     };
@@ -91,7 +99,7 @@ export default function SettingsPage() {
         };
         setTouched(allTouched);
 
-        const errors = validate(formData);
+        const errors = validate(draftProfile);
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
             setSaveStatus('error'); // Set error status
@@ -102,6 +110,7 @@ export default function SettingsPage() {
         setSaveStatus('saving');
 
         setTimeout(() => {
+            onProfileUpdate(draftProfile)
             setSaveStatus('success');
             setTimeout(() => {
                 setProfileMode('display');
@@ -111,9 +120,13 @@ export default function SettingsPage() {
         }, 2000);
     };
 
-    const onEditClick = () => setProfileMode('edit');
+    const onEditClick = () => {
+        setProfileMode('edit');
+        setDraftProfile(user);
+    };
 
     const onCancel = () => {
+        setDraftProfile(user);
         setProfileMode('display');
         setFormErrors({});
         setTouched({});
@@ -169,11 +182,11 @@ export default function SettingsPage() {
                 <div className="flex-grow max-w-3xl">
                     {activeTab === 'profile' && (
                         profileMode === 'display'
-                            ? <ProfileDisplay formData={formData} onEditClick={onEditClick} />
+                            ? <ProfileDisplay formData={user} onEditClick={onEditClick} />
                             : <ProfileSettings
                                 errors={formErrors}
                                 touched={touched}
-                                formData={formData}
+                                formData={draftProfile}
                                 handleChange={handleChange}
                                 handleSubmit={handleSubmit}
                                 saveStatus={saveStatus}

@@ -58,3 +58,31 @@ export const profileSchema = z.object({
             }),
     }),
 });
+
+export const loginSchema = z.object({
+    identifier: z.string().min(1, "Email or username is required."),
+    password: z.string().min(1, "Password is required."),
+}).superRefine(({ identifier }, ctx) => {
+    // If it contains '@', validate as an email
+    if (identifier.includes('@')) {
+        const emailCheck = z.string().email().safeParse(identifier);
+        if (!emailCheck.success) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Please enter a valid email address.",
+                path: ['identifier'],
+            });
+        }
+    }
+    // Otherwise, validate as a username
+    else {
+        const usernameCheck = z.string().min(3).safeParse(identifier);
+        if (!usernameCheck.success) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Username must be at least 3 characters.",
+                path: ['identifier'],
+            });
+        }
+    }
+});

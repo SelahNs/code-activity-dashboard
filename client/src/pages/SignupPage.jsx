@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signupSchema } from '../lib/validation';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
+
 
 const PasswordStrengthIndicator = ({ password }) => {
     const getStrength = () => {
@@ -42,13 +44,14 @@ const FormError = ({ message }) => (
     </motion.p>
 );
 
-export default function SignupPage() {
+export default function SignupPage({ onLoginSuccess }) {
     const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', confirmPassword: '' });
     const [formErrors, setFormErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [shakeButton, setShakeButton] = useState(0);
+    const [submitStatus, setSubmitStatus] = useState('idle');
 
     useEffect(() => {
         // This useEffect now correctly handles validation only on touched fields.
@@ -83,17 +86,41 @@ export default function SignupPage() {
         setTouched(prev => ({ ...prev, [e.target.name]: true }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const result = signupSchema.safeParse(formData);
         if (!result.success) {
             setFormErrors(result.error.format());
-            // Mark all fields as touched to show all errors on submit
             setTouched({ fullName: true, username: true, email: true, password: true, confirmPassword: true });
             setShakeButton(s => s + 1);
             return;
         }
-        console.log("Form submitted successfully:", result.data);
+        try {
+            setSubmitStatus('loading');
+
+            const response = await fetch('http://localhost:8000/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(result.data),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Server error:", data.errors);
+            } else {
+                onLoginSuccess(data.user, false)
+                console.log("signup successsfull:", data);
+            }
+
+        } catch (error) {
+            console.log("Network error:", error)
+
+        } finally {
+            setSubmitStatus('idle');
+        }
     };
 
     return (
@@ -160,6 +187,25 @@ export default function SignupPage() {
                         </button>
                     </motion.div>
                 </form>
+
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600" /></div>
+                        <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">Or sign up with</span></div>
+                    </div>
+                    <div className="mt-6 grid grid-cols-1 gap-3">
+                        <button type="button" onClick={() => alert("GitHub signup coming soon!")}
+                            className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                            <AiFillGithub className="w-5 h-5 mr-2" />
+                            Continue with GitHub
+                        </button>
+                        <button type="button" onClick={() => alert("Google signup coming soon!")}
+                            className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                            <AiOutlineGoogle className="w-5 h-5 mr-2" />
+                            Continue with Google
+                        </button>
+                    </div>
+                </div>
 
                 <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     Already have an account?{' '}<Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Log in</Link>
