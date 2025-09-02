@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import StatCard from '../components/StatCard'
 import ProductivityChart from '../components/productivityChart'
-import ProjectFilter from '../components/ProjectFilter'
+import ProjectFilter from '../components/ProjectTagFilter'
 import LanguagePieChart from '../components/LanguagePieChart'
 import LanguageRadarChart from '../components/LanguageRadarChart'
 import ThemeToggle from '../components/ThemeToggle'

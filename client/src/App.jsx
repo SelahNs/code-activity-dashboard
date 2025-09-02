@@ -12,10 +12,11 @@ import Navbar from "./components/Navbar";
 import ThemeProvider from './context/ThemeContext';
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
 // Import your data source
 import codingData from './data/data.json';
 import { useNavigate } from "react-router-dom";
-
 // This is now the main "brain" of your application
 export default function App() {
     // 1. All state now lives here, in the top-level component
@@ -125,9 +126,12 @@ export default function App() {
                     <Route path={"/login"} element={<LoginPage onLoginSuccess={handleLogin} />} />
                     <Route path={"/signup"} element={<SignupPage />} />
                     <Route path={"/forgot-password"} element={<ForgotPasswordPage />} />
+                    <Route path={"/projects"} element={<ProjectsPage />} />
+                    <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
 
                 </Routes>
             </AnimatePresence>
         </ThemeProvider>
     )
 }
+// projhects, reports, dashboar, goals and ficus, settings
