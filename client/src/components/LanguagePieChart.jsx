@@ -1,102 +1,117 @@
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+// src/components/LanguagePieChart.jsx
+import { useState, useCallback } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const CustomPieTooltip = ({ active, payload, total }) => {
-    if (active && payload && payload.length) {
-        const lang = payload[0].name;
-        const number = payload[0].value;
-        const percent = ((payload[0].value / total) * 100).toFixed(0);
+// Helper functions (formatDuration, renderActiveShape) are unchanged...
+const formatDuration = (minutes) => {
+    if (minutes < 60) return `${Math.round(minutes)}m`;
+    const hours = minutes / 60;
+    return `${hours.toFixed(1)}h`;
+};
 
-        return <div className="flex flex-col gap-2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <p className='text-lg font-bold' style={{ color: payload[0].payload.fill }}>{lang}</p>
-            <p className='text-sm text-gray-600 dark:text-gray-400'>{number} minutes</p>
-            <p className='font-bold text-3xl text-gray-900 dark:text-gray-300'>{percent}%</p>
-        </div>
+const renderActiveShape = (props) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+    return (
+        <Sector
+            cx={cx}
+            cy={cy}
+            innerRadius={innerRadius}
+            outerRadius={outerRadius + 8}
+            startAngle={startAngle}
+            endAngle={endAngle}
+            fill={fill}
+        />
+    );
+};
+
+export default function LanguagePieChart({ sessions = [] }) {
+    // State and data processing logic is unchanged...
+    const [activeIndex, setActiveIndex] = useState(null);
+    const totalDuration = sessions.reduce((acc, curr) => acc + curr.duration, 0);
+    const processData = () => {
+        if (totalDuration === 0) return [];
+        let langData = Object.entries(sessions.reduce((acc, { language, duration }) => {
+            acc[language] = (acc[language] || 0) + duration; return acc;
+        }, {})).map(([name, value]) => ({ name, value }));
+        langData.sort((a, b) => b.value - a.value);
+        const topLangs = langData.slice(0, 4);
+        const otherLangsValue = langData.slice(4).reduce((acc, curr) => acc + curr.value, 0);
+        if (otherLangsValue > 0) return [...topLangs, { name: 'Other', value: otherLangsValue }];
+        return topLangs;
+    };
+    const chartData = processData();
+    
+    // --- THE FINAL "PROFESSIONAL & COHESIVE" PALETTE ---
+    const COLORS = ['#4F46E5', '#7C3AED', '#F59E0B', '#EA580C', '#64748B'];
+    // Indigo, Violet, Teal, Orange, Slate (for "Other")
+    // ---------------------------------------------------
+    
+    const onPieEnter = useCallback((_, index) => setActiveIndex(index), [setActiveIndex]);
+    const onPieLeave = useCallback(() => setActiveIndex(null), [setActiveIndex]);
+    const activeData = activeIndex !== null ? chartData[activeIndex] : null;
+
+    if (chartData.length === 0) {
+        return <div className="w-full h-full flex items-center justify-center"><p className="text-slate-500">No language data for this period.</p></div>;
     }
 
-    // contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '10px' }}
-    //                     formatter={(value, name, props) => [`${value} minutes`, name]} // Customizes the tooltip text
-}
-
-export default function LanguagePieChart(props) {
-    const totalDuration = props.sessions.reduce((accumulator, current) => accumulator + current.duration, 0);
-
-    const required = Object.entries(props.sessions.reduce((accumulator, value) => {
-        if (accumulator[value.language]) {
-            accumulator[value.language] += value.duration;
-        } else {
-            accumulator[value.language] = value.duration
-        }
-        return accumulator
-    }, {})).map(subarray => {
-        return {
-            name: subarray[0],
-            value: subarray[1]
-        }
-    })
-
-    // A more modern, vibrant color palette
-    const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-    // (blue, green, amber, red, purple)
-
-    // In LanguagePieChart.jsx
-
     return (
-        <div style={{ width: '100%', height: 400 }}>
-            <h2 className="text-xl font-semibold mb-4 text-center text-gray-800 dark:text-slate-200">Language Breakdown</h2>
-            <ResponsiveContainer>
-                <table className="sr-only">
-                    <thead>
-                        <tr>
-                            <th>Language Name</th>
-                            <th>Total Minutes</th>
-                            <th>Percent</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {/* You need to map over your formattedData here */}
-                        {required.map((session, index) => (
-                            <tr key={index}>
-                                <td>{session.name}</td>
-                                <td>{session.value}</td>
-                                <td>{((session.value / totalDuration) * 100).toFixed(0)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <PieChart>
+        // The rest of the component's JSX is unchanged
+        <div className="w-full max-w-xl flex flex-col md:flex-row items-center justify-center gap-8">
+            <div className="relative w-56 h-56 flex-shrink-0">
+                <ResponsiveContainer>
+                    <PieChart>
+                        <Pie
+                            activeIndex={activeIndex}
+                            activeShape={renderActiveShape}
+                            data={chartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={95}
+                            stroke="none"
+                            paddingAngle={2}
+                            dataKey="value"
+                            onMouseEnter={onPieEnter}
+                            onMouseLeave={onPieLeave}
+                        >
+                            {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </ResponsiveContainer>
 
-                    {/* This is the component that renders the actual pie slices */}
-                    <Pie
-                        data={required}      // 1. We pass in our perfectly formatted data
-                        // 2. We tell it the key for the label is "name"
-                        nameKey="name"         // 3. We tell it the key for the name (used in tooltip) is also "name"
-                        valueKey="value"       // 4. We tell it the key for the value (size of the slice) is "value"
-                        cx="50%"             // 5. Center X-coordinate of the pie
-                        cy="50%"             // 6. Center Y-coordinate of the pie
-                        outerRadius={120}      // 7. How big the pie is
-                        // 8. A default fill color
-                        label                  // 9. This tells it to render labels on the slices
-                    >
-                        {/* 
-            This is the magic part for colors.
-            We map over our data and create a <Cell> for each slice.
-            Each <Cell> gets a unique color from our COLORS array.
-          */}
-                        {required.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Pie>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <AnimatePresence initial={false}>
+                        {activeData ? (
+                            <motion.div key="active-data" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                                <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">{activeData.name}</span>
+                                <span className="block text-sm text-slate-500 dark:text-slate-400">
+                                    {((activeData.value / totalDuration) * 100).toFixed(0)}%
+                                </span>
+                            </motion.div>
+                        ) : (
+                            <motion.div key="total-data" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                                <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+                                    {formatDuration(totalDuration)}
+                                </span>
+                                <span className="block text-xs text-slate-500 dark:text-slate-400">Total</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
 
-                    {/* The tooltip that shows up on hover */}
-                    <Tooltip
-                        content={<CustomPieTooltip total={totalDuration} />}
-                    />
-
-                    {/* The legend that shows which color corresponds to which language */}
-                    <Legend verticalAlign="bottom" height={50} />
-
-                </PieChart>
-            </ResponsiveContainer>
+            <div className="w-full md:w-48 flex flex-col gap-2">
+                {chartData.map((entry, index) => (
+                    <motion.div key={`legend-${index}`} onMouseEnter={() => setActiveIndex(index)} onMouseLeave={() => setActiveIndex(null)} className="flex items-center gap-3 cursor-pointer p-2 rounded-md origin-left" animate={{ scale: activeIndex === index ? 1.05 : 1 }} transition={{ duration: 0.2 }}>
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{entry.name}</span>
+                        <span className="ml-auto text-xs font-mono text-slate-400 dark:text-slate-500">{formatDuration(entry.value)}</span>
+                    </motion.div>
+                ))}
+            </div>
         </div>
     );
 }

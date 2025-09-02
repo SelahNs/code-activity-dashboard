@@ -1,127 +1,116 @@
+// src/pages/DashboardPage.jsx
 import { useState, useEffect } from 'react';
-import StatCard from '../components/StatCard'
-import ProductivityChart from '../components/productivityChart'
-import ProjectFilter from '../components/ProjectTagFilter'
-import LanguagePieChart from '../components/LanguagePieChart'
-import LanguageRadarChart from '../components/LanguageRadarChart'
-import ThemeToggle from '../components/ThemeToggle'
-import { motion } from 'framer-motion'
-import { useTheme } from '../context/ThemeContext';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { FiPlus, FiCalendar } from 'react-icons/fi';
+import StatCard from '../components/StatCard';
+import ProductivityChart from '../components/ProductivityChart';
+import PerformanceSummary from '../components/PerformanceSummary';
+import LiveSession from '../components/LiveSession';
+import ActiveProjects from '../components/ActiveProjects';
+import RecentActivity from '../components/RecentActivity';
+import AiSuggestions from '../components/AiSuggestions';
+import Milestones from '../components/Milestones';
+import DateRangePicker from '../components/DateRangePicker'; // Assuming this is now in its own file
 
-// --- Animation Variants ---
-// We define them here as they are specific to this page's layout.
-const cardsContainerVariants = {
-  hidden: { opacity: 1 },
-  visible: {
-    opacity: 1,
-    transition: {
-      // A short delay after the page loads before the cards start animating in.
-      delayChildren: 0.3,
-      staggerChildren: 0.15,
-    },
-  },
-};
+// --- MOCK DATA IS NOW RESTORED HERE ---
+// This data is structured to test our filter logic.
+const MOCK_SESSIONS = [
+    // Last few days (for "This Week")
+    { date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(), duration: 125, keystrokes: 15000, linesAdded: 350, language: 'JavaScript', project: 'Dashboard-UI' },
+    { date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), duration: 180, keystrokes: 22000, linesAdded: 500, language: 'React', project: 'Dashboard-UI' },
+    { date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString(), duration: 90, keystrokes: 8000, linesAdded: 150, language: 'CSS', project: 'Marketing-Site' },
+    // Last week
+    { date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(), duration: 240, keystrokes: 30000, linesAdded: 700, language: 'JavaScript', project: 'API-Service' },
+    { date: new Date(new Date().setDate(new Date().getDate() - 6)).toISOString(), duration: 60, keystrokes: 5000, linesAdded: 80, language: 'Python', project: 'Data-Script' },
+    // Last month
+    { date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(), duration: 150, keystrokes: 18000, linesAdded: 400, language: 'React', project: 'Dashboard-UI' },
+    { date: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString(), duration: 200, keystrokes: 25000, linesAdded: 600, language: 'JavaScript', project: 'API-Service' },
+    { date: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(), duration: 110, keystrokes: 12000, linesAdded: 250, language: 'Python', project: 'Data-Script' },
+];
 
-const cardVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: 'tween', duration: 0.4 },
-  },
-};
+export default function DashboardPage({ user }) { // The `allSessions` prop is no longer needed
+    const [dateRange, setDateRange] = useState('This Week');
+    const [filteredData, setFilteredData] = useState([]);
 
+    useEffect(() => {
+        const now = new Date();
+        // The filter logic now uses our MOCK_SESSIONS constant
+        const filterData = (sessions) => {
+            return sessions.filter(session => {
+                const sessionDate = new Date(session.date);
+                if (dateRange === 'This Week') {
+                    // Get the date for 7 days ago
+                    const oneWeekAgo = new Date();
+                    oneWeekAgo.setDate(now.getDate() - 7);
+                    return sessionDate >= oneWeekAgo;
+                }
+                if (dateRange === 'This Month') {
+                    // Get the date for 30 days ago for simplicity
+                    const oneMonthAgo = new Date();
+                    oneMonthAgo.setDate(now.getDate() - 30);
+                    return sessionDate >= oneMonthAgo;
+                }
+                // 'All Time'
+                return true;
+            },[...sessions]);
+        };
+        
+        setFilteredData(filterData(MOCK_SESSIONS));
 
-export default function DashboardPage({
+    }, [dateRange]); // Rerun only when the range changes
 
-  filteredData,
-  projectNames,
-  selectedProjects,
-  onProjectClick
-}) {
-  // --- The Deferred Rendering State ---
-  // This is the key to our performance optimization.
-  const [renderCharts, setRenderCharts] = useState(false);
-  const { theme, handleThemeToggle } = useTheme();
+    return (
+        <motion.main /* ... */>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <header className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 mb-10">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+                            Welcome back, {user?.fullName?.split(' ')[0] || 'Guest'}
+                        </h1>
+                        <p className="mt-1 text-md text-slate-500 dark:text-slate-400">
+                            Here's your coding activity overview.
+                        </p>
+                    </div>
+                    <div className="flex-shrink-0 flex items-center gap-3 w-full sm:w-auto">
+                        <DateRangePicker selectedRange={dateRange} onRangeChange={setDateRange} />
+                        <Link to="/projects/new" className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-all">
+                            <FiPlus className="w-4 h-4" />
+                            <span>New Project</span>
+                        </Link>
+                    </div>
+                </header>
 
-  useEffect(() => {
-    // This effect runs only once after the component mounts.
-    const timer = setTimeout(() => {
-      // After a very short delay, we set the state to true,
-      // which will trigger a re-render and show the charts.
-      setRenderCharts(true);
-    }, 300); // 300ms delay to allow animations to finish
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* --- MAIN CONTENT --- */}
+                    <div className="lg:col-span-3 space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <StatCard sessions={filteredData} title={"Hours Coded"} dataKey={'duration'} />
+                            <StatCard sessions={filteredData} title={"Keystrokes"} dataKey={'keystrokes'} />
+                            <StatCard sessions={filteredData} title={"Lines of Code"} dataKey={'linesAdded'} />
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Coding Activity Trend</h3>
+                            </div>
+                            <div className="p-4 h-96">
+                                <ProductivityChart sessions={filteredData} />
+                            </div>
+                        </div>
+                        <PerformanceSummary sessions={filteredData} />
+                        <AiSuggestions />
+                    </div>
 
-    // Cleanup function to clear the timer
-    return () => clearTimeout(timer);
-  }, []); // Empty dependency array means it runs only on mount
-
-
-  return (
-    <motion.main
-      className="min-h-screen"
-      // A simple fade for the overall page container
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="max-w-6xl mx-auto px-4 pb-16">
-        <header className="flex justify-between items-center my-8">
-          {/* The title participates in the shared layout animation */}
-          <h1
-
-            className="text-3xl font-bold text-gray-900 dark:text-white"
-          >
-            Dashboard
-          </h1>
-
-        </header>
-
-        <ProjectFilter
-          array={projectNames}
-          selectedProject={selectedProjects}
-          handleClick={onProjectClick}
-        />
-
-        {/* --- The Stat Cards Row --- */}
-        {/* It is now a motion.div again, with the correct variants */}
-        <motion.div
-          className="flex flex-wrap gap-4"
-          variants={cardsContainerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Each card is wrapped in a motion.div for the stagger effect */}
-          <motion.div variants={cardVariants}>
-            <StatCard sessions={filteredData} title={"Total Hours Coded"} dataKey={'duration'} />
-          </motion.div>
-          <motion.div variants={cardVariants}>
-            <StatCard sessions={filteredData} title={"Total Keystrokes"} dataKey={'keystrokes'} />
-          </motion.div>
-          <motion.div variants={cardVariants}>
-            <StatCard sessions={filteredData} title={"Total Lines Added"} dataKey={'linesAdded'} />
-          </motion.div>
-        </motion.div>
-
-        {/* --- The Charts Section --- */}
-        {/* This entire section is now conditionally rendered */}
-        {renderCharts && (
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 mt-16'>
-            <div className="bg-slate-100 dark:bg-gray-800 rounded-xl p-6">
-              <ProductivityChart sessions={filteredData} dataKey="duration" strokeColor="#8884d8" title={'Duration'} />
+                    {/* --- SIDEBAR --- */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <LiveSession />
+                        <ActiveProjects />
+                        <RecentActivity />
+                        {/* We pass all the data to Milestones so it can calculate all-time bests */}
+                        <Milestones allSessions={MOCK_SESSIONS} /> 
+                    </div>
+                </div>
             </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6">
-              <LanguagePieChart sessions={filteredData} title="Language Breakdown" />
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6">
-              <ProductivityChart sessions={filteredData} dataKey="keystrokes" strokeColor="#10b981" title={'Keystrokes'} />
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6">
-              <LanguageRadarChart sessions={filteredData} />
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.main>
-  );
+        </motion.main>
+    );
 }

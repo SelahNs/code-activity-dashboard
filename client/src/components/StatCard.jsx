@@ -1,27 +1,19 @@
-export default function StatCard(props) {
+// A more polished StatCard with hover effects
+import { FiArrowUpRight, FiArrowDownRight } from 'react-icons/fi';
 
-    const key = props.dataKey
-    const totalValue = props.sessions.reduce((total, current) => total + current[key], 0);
+export default function StatCard({ sessions, title, dataKey }) {
+    const total = sessions.reduce((sum, s) => sum + s[dataKey], 0);
+    const trend = Math.random() > 0.5 ? 'up' : 'down'; // Dummy trend data
 
-    let display;
-    switch (props.dataKey) {
-        case 'duration':
-            const hours = Math.floor(totalValue / 60);
-            const mins = totalValue % 60;
-            display = `${hours}:${mins < 10 ? '0' : ''}${mins}`;
-            break
-        case 'keystrokes':
-        case 'linesAdded':
-            display = totalValue.toLocaleString();
-            break;
-        default:
-            display = totalValue;
-    }
-
-
-    return <div className="bg-slate-100 dark:bg-gray-800 p-6 rounded-xl">
-        <p className="text-sm text-gray-600 dark:text-gray-400">{props.title}</p>
-        <h2 className="text-4xl font-bold text-slate-900 dark:text-white">{display}</h2>
-        {/* <h2>{hours}:{mins < 10 && '0'}{mins}</h2> */}
-    </div>
+    return (
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div className="flex justify-between items-start">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+                {trend === 'up' ? <FiArrowUpRight className="text-green-500" /> : <FiArrowDownRight className="text-red-500" />}
+            </div>
+            <p className="text-3xl font-bold mt-2 text-slate-800 dark:text-slate-100">
+                {total.toLocaleString()}
+            </p>
+        </div>
+    );
 }
