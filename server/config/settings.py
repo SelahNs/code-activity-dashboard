@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'users',
     'django_extensions',
     'corsheaders',
 
@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     # 'dj_rest_auth',
     # 'dj_rest_auth.registration',
     # My apps
-    'users',
     # 'events',
     # 'dashboard',
 ]
@@ -132,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 # CORS SETTINGS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173", # Your Vite/React frontend
+    "http://localhost:5173",  # Your Vite/React frontend
     "http://127.0.0.1:5173",
     # Add your production frontend URL here when you deploy
     # "https://your-production-frontend.com",
@@ -188,6 +187,8 @@ SIMPLE_JWT = {
     "JTI_CLAIM": "jti",
 }
 
+AUTH_USER_MODEL = "users.CustomUser"
+
 # 3. ALLAUTH CONFIGURATION
 # ------------------------------------------------------------------------------
 # Required for allauth to work
@@ -202,8 +203,9 @@ AUTHENTICATION_BACKENDS = [
 HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 
 # Basic account setup
+ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.CustomSignupAddonForm'
 ACCOUNT_LOGIN_METHODS = ["email"]
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
 # Social Account Providers (e.g., Google)

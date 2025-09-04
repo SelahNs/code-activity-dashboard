@@ -100,10 +100,13 @@ export default function SignupPage({ onLoginSuccess }) {
 
             // NEW CONTENT  
             const payload = {
+                fullName: result.data.fullName,
                 email: result.data.email,
+                username: result.data.username,
                 password: result.data.password,
                 password2: result.data.confirmPassword,
             };
+            console.log(payload.fullName)
 
             const response = await fetch('http://localhost:8000/_allauth/app/v1/auth/signup', {
                 method: 'POST',
