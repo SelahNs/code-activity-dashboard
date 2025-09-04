@@ -12,6 +12,8 @@ import RecentActivity from '../components/RecentActivity';
 import AiSuggestions from '../components/AiSuggestions';
 import Milestones from '../components/Milestones';
 import DateRangePicker from '../components/DateRangePicker'; // Assuming this is now in its own file
+import useNotificationStore from '../stores/useNotificationStore'; // 
+
 
 // --- MOCK DATA IS NOW RESTORED HERE ---
 // This data is structured to test our filter logic.
@@ -29,9 +31,11 @@ const MOCK_SESSIONS = [
     { date: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(), duration: 110, keystrokes: 12000, linesAdded: 250, language: 'Python', project: 'Data-Script' },
 ];
 
-export default function DashboardPage({ user }) { // The `allSessions` prop is no longer needed
+export default function DashboardPage({ user, errorHandler }) { // The `allSessions` prop is no longer needed
     const [dateRange, setDateRange] = useState('This Week');
     const [filteredData, setFilteredData] = useState([]);
+
+    const showNotification = useNotificationStore((state) => state.showNotification);
 
     useEffect(() => {
         const now = new Date();
@@ -53,9 +57,9 @@ export default function DashboardPage({ user }) { // The `allSessions` prop is n
                 }
                 // 'All Time'
                 return true;
-            },[...sessions]);
+            }, [...sessions]);
         };
-        
+
         setFilteredData(filterData(MOCK_SESSIONS));
 
     }, [dateRange]); // Rerun only when the range changes
@@ -78,6 +82,8 @@ export default function DashboardPage({ user }) { // The `allSessions` prop is n
                             <FiPlus className="w-4 h-4" />
                             <span>New Project</span>
                         </Link>
+                        <button onClick={() => showNotification("This is a test error notification.", "error")} className='bg-red p-6 w-5 h-5'>Error</button>
+                        <button onClick={() => showNotification("This is a test success notification.", "success")} className='bg-green p-6 w-5 h-5'>Error</button>
                     </div>
                 </header>
 
@@ -107,7 +113,7 @@ export default function DashboardPage({ user }) { // The `allSessions` prop is n
                         <ActiveProjects />
                         <RecentActivity />
                         {/* We pass all the data to Milestones so it can calculate all-time bests */}
-                        <Milestones allSessions={MOCK_SESSIONS} /> 
+                        <Milestones allSessions={MOCK_SESSIONS} />
                     </div>
                 </div>
             </div>

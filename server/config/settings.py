@@ -143,7 +143,7 @@ CORS_ALLOWED_ORIGINS = [
 # 1. FRONTEND CONFIGURATION
 # ------------------------------------------------------------------------------
 # The base URL of your React/Vue/etc. frontend application
-FRONTEND_URL = "http://localhost:3000"
+FRONTEND_URL = "http://localhost:5173"
 
 # These are the URLs that Django will generate in emails (e.g., for verification).
 # Your frontend application MUST have routes that can handle these URLs.

@@ -1,4 +1,4 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useMemo } from 'react';
 
@@ -14,12 +14,35 @@ import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
+
 // Import your data source
 import codingData from './data/data.json';
-import { useNavigate } from "react-router-dom";
+import Toast from './components/Toast'
+import useNotificationStore from "./stores/useNotificationStore";
 // This is now the main "brain" of your application
 export default function App() {
     // 1. All state now lives here, in the top-level component
+
+    // // function useAuth() {
+    // //     const navigate = useNavigate();
+    // //     // Get the `showNotification` action from our store
+    // //     const showNotification = useNotificationStore((state) => state.showNotification);
+
+    // //     const handleLogout = () => {
+    // //         // 1. Clean up tokens
+    // //         localStorage.removeItem('accessToken');
+    // //         localStorage.removeItem('refreshToken');
+
+    // //         // 2. Show a helpful notification!
+    // //         showNotification("Your session has expired. Please log in again.", "error");
+
+    // //         // 3. Redirect the user
+    // //         navigate('/login');
+    // //     };
+
+    // }
+
 
     const [selectedProject, setSelectedProject] = useState([]);
     const location = useLocation();
@@ -96,42 +119,47 @@ export default function App() {
 
 
     return (
-        // The React Fragment <> is perfect for the root
-        <ThemeProvider>
-            {/* The Navbar receives the current path to hide the active link */}
-            <Navbar currentPath={location.pathname} user={currentUser} onLogout={handleLogout} />
+        <>
+            <ThemeProvider>
+                {/* The Navbar receives the current path to hide the active link */}
+                <Navbar currentPath={location.pathname} user={currentUser} onLogout={handleLogout} />
 
-            {/* AnimatePresence manages the page transitions */}
-            <AnimatePresence mode='wait'>
-                <Routes location={location} key={location.pathname}>
+                {/* AnimatePresence manages the page transitions */}
+                <AnimatePresence mode='wait'>
+                    <Routes location={location} key={location.pathname}>
 
-                    {/* The DashboardPage now receives all the data and functions it needs as props */}
-                    <Route
-                        path={"/"}
-                        element={
-                            <DashboardPage
+                        {/* The DashboardPage now receives all the data and functions it needs as props */}
+                        <Route
+                            path={"/"}
+                            element={
+                                <DashboardPage
+                                    filteredData={filteredData}
+                                    projectNames={projectNames}
+                                    selectedProjects={selectedProject}
+                                    onProjectClick={handleClick}
+                                />
+                            }
+                        />
 
-                                filteredData={filteredData}
-                                projectNames={projectNames}
-                                selectedProjects={selectedProject}
-                                onProjectClick={handleClick}
-                            />
-                        }
-                    />
+                        {/* Your other pages are ready to be built out */}
+                        <Route path={"/reports"} element={<ReportsPage />} />
+                        <Route path={"/users"} element={<UsersPage />} />
+                        <Route path={"/settings"} element={<SettingsPage user={currentUser} onProfileUpdate={updateUser} onLoginSuccess={handleLogin} />} />
+                        <Route path={"/login"} element={<LoginPage onLoginSuccess={handleLogin} />} />
+                        <Route path={"/signup"} element={<SignupPage />} />
+                        <Route path={"/forgot-password"} element={<ForgotPasswordPage />} />
+                        <Route
+                            path="/verify-email/:key"
+                            element={<EmailVerificationPage onLoginSuccess={handleLogin} />}
+                        />
+                        <Route path={"/projects"} element={<ProjectsPage />} />
+                        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
 
-                    {/* Your other pages are ready to be built out */}
-                    <Route path={"/reports"} element={<ReportsPage />} />
-                    <Route path={"/users"} element={<UsersPage />} />
-                    <Route path={"/settings"} element={<SettingsPage user={currentUser} onProfileUpdate={updateUser} onLoginSuccess={handleLogin} />} />
-                    <Route path={"/login"} element={<LoginPage onLoginSuccess={handleLogin} />} />
-                    <Route path={"/signup"} element={<SignupPage />} />
-                    <Route path={"/forgot-password"} element={<ForgotPasswordPage />} />
-                    <Route path={"/projects"} element={<ProjectsPage />} />
-                    <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-
-                </Routes>
-            </AnimatePresence>
-        </ThemeProvider>
+                    </Routes>
+                </AnimatePresence>
+            </ThemeProvider>
+            <Toast />
+        </>
     )
 }
 // projhects, reports, dashboar, goals and ficus, settings
