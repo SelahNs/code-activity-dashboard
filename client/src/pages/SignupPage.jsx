@@ -115,10 +115,13 @@ export default function SignupPage() {
         setSubmitStatus('loading');
         try {
             const payload = {
+                fullName: result.data.fullName,
                 email: result.data.email,
+                username: result.data.username,
                 password: result.data.password,
                 password2: result.data.confirmPassword
             };
+            console.log(payload.fullName)
 
             await fetch('http://127.0.0.1:8000/_allauth/app/v1/auth/signup', {
                 method: 'POST',
