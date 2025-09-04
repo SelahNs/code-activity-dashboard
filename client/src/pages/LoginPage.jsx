@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
 import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
+import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai'; // Added Google Icon
+import { email } from 'zod';
 
 const FormError = ({ message }) => (
     <motion.p
@@ -68,23 +69,30 @@ export default function LoginPage({ onLoginSuccess }) {
 
         setSubmitStatus('loading');
         try {
-            // URL typo corrected from '/v/' to '/v1/'
-            const data = await apiFetch('/_allauth/app/v1/auth/login', {
+            const response = await fetch('http://127.0.0.1:8000/_allauth/app/v1/auth/login', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
-                    email: result.data.identifier,
-                    password: result.data.password,
+                    email: formData.identifier,
+                    password: formData.password
                 }),
             });
 
-            const { access_token, refresh_token } = data.meta;
-            const { user } = data.data;
+            const data = await response.json();
 
-            const storage = formData.rememberMe ? localStorage : sessionStorage;
-            storage.setItem('accessToken', access_token);
-            storage.setItem('refreshToken', refresh_token);
+            if (!response.ok) {
+                setLoginError(data.error || 'Invalid credentials. Please try again.');
+                setSubmitStatus('error');
+                setShakeButton(s => s + 1);
+            } else {
+                onLoginSuccess(data.user, formData.rememberMe);
+                console.log("Login SEccessfill", data);
+                console.log("YOUr token is:", data.access_token)
+                localStorage.setItem('token', JSON.stringify(data.access_token))
 
-            onLoginSuccess(user, formData.rememberMe);
+            }
 
         } catch (error) {
             setLoginError('The email or password you entered is incorrect.');

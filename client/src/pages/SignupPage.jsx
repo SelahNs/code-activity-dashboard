@@ -102,6 +102,7 @@ export default function SignupPage() {
 
     // src/pages/SignupPage.jsx
 
+    // --- THIS IS THE MAIN MODIFIED SECTION ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         const result = signupSchema.safeParse(formData);
@@ -111,34 +112,31 @@ export default function SignupPage() {
             setShakeButton(s => s + 1);
             return;
         }
-
-        setSubmitStatus('loading');
         try {
-            const payload = {
-                fullName: result.data.fullName,
-                email: result.data.email,
-                username: result.data.username,
-                password: result.data.password,
-                password2: result.data.confirmPassword
-            };
-            console.log(payload.fullName)
+            setSubmitStatus('loading');
 
-            await fetch('http://127.0.0.1:8000/_allauth/app/v1/auth/signup', {
+            const response = await fetch('http://localhost:8000/api/auth/signup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(result.data),
             });
 
-            // --- THIS IS THE NEW "SECURE AMBIGUITY" LOGIC ---
-            // REGARDLESS of the response (success or "email taken" error),
-            // we show the same success message to the user.
-            // This prevents anyone from figuring out if an email is already registered.
-            setIsSubmitted(true);
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Server error:", data.errors);
+            } else {
+                onLoginSuccess(data.user, false)
+                console.log("signup successsfull:", data);
+            }
 
         } catch (error) {
-            // We still show a toast for a total failure, like a network error.
-            showNotification('Could not connect to the server. Please try again later.', 'error');
-            setSubmitStatus('idle'); // Manually reset status on network error
+            console.log("Network error:", error)
+
+        } finally {
+            setSubmitStatus('idle');
         }
         // We don't need a `finally` block anymore because the success path
         // removes the button entirely.
