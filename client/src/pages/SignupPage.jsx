@@ -98,12 +98,19 @@ export default function SignupPage({ onLoginSuccess }) {
         try {
             setSubmitStatus('loading');
 
-            const response = await fetch('http://localhost:8000/api/auth/signup', {
+            // NEW CONTENT  
+            const payload = {
+                email: result.data.email,
+                password: result.data.password,
+                password2: result.data.confirmPassword,
+            };
+
+            const response = await fetch('http://localhost:8000/_allauth/app/v1/auth/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(result.data),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();

@@ -204,7 +204,7 @@ HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 # Basic account setup
 ACCOUNT_LOGIN_METHODS = ["email"]
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
 # Social Account Providers (e.g., Google)
 SOCIALACCOUNT_PROVIDERS = {

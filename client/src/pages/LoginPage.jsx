@@ -54,14 +54,20 @@ export default function LoginPage({ onLoginSuccess }) {
         }
 
         setSubmitStatus('loading');
+        
+        // NEW CONTENT  
+        const payload = {
+            email: result.data.identifier,
+            password: result.data.password,
+        }
 
         try {
-            const response = await fetch('http://127.0.0.1:8000?api/auth/login/', {
+            const response = await fetch('http://127.0.0.1:8000/_allauth/app/v1/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(result.data),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
