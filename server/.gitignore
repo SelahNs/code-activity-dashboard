@@ -34,7 +34,6 @@ static/
 # Local settings
 *.local
 *.env
-.env.*
 
 # VS Code & IDEs
 .vscode/

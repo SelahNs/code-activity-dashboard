@@ -148,7 +148,7 @@ FRONTEND_URL = "http://localhost:5173"
 # Your frontend application MUST have routes that can handle these URLs.
 HEADLESS_FRONTEND_URLS = {
     "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
-    "account_reset_password_from_key": f"{FRONTEND_URL}/password-reset/{{key}}",
+    "account_reset_password_from_key": f"{FRONTEND_URL}/forgot-password/{{key}}",
 }
 
 # 2. DJANGO REST FRAMEWORK & JWT CONFIGURATION
@@ -218,6 +218,13 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
+    },
+    'github': {
+        'APP': {
+            'client_id': os.getenv('GITHUB_CLIENT_ID'),
+            'secret': os.getenv('GITHUB_CLIENT_SECRET'),
+        },
+        'SCOPE': ['read:user', 'user:email'],
     }
 }
 
