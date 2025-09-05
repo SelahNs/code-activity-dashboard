@@ -15,23 +15,17 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-dotenv_path = os.path.join(BASE_DIR, '.env')
-
-print(f"~~~~~~ DOES THE .env FILE EXIST? -> {os.path.exists(dotenv_path)} ~~~~~~")
-
-# Explicitly load the .env file from that path
-load_dotenv(dotenv_path=dotenv_path)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-
-
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -160,11 +154,9 @@ HEADLESS_FRONTEND_URLS = {
 # 2. DJANGO REST FRAMEWORK & JWT CONFIGURATION
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "allauth.headless.authentication.SessionAuthentication",
-        "allauth.headless.authentication.TokenAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
@@ -195,6 +187,8 @@ SIMPLE_JWT = {
     "JTI_CLAIM": "jti",
 }
 
+AUTH_USER_MODEL = "users.CustomUser"
+
 # 3. ALLAUTH CONFIGURATION
 # ------------------------------------------------------------------------------
 # Required for allauth to work
@@ -208,14 +202,11 @@ AUTHENTICATION_BACKENDS = [
 # which prevents server-side sessions from being created.
 HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 
-ACCOUNT_ADAPTER = "allauth.headless.adapter.HeadlessAccountAdapter"
-SOCIALACCOUNT_ADAPTER = "allauth.headless.adapter.HeadlessSocialAccountAdapter"
-
 # Basic account setup
 ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.CustomSignupAddonForm'
 ACCOUNT_LOGIN_METHODS = ["email"]
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
 # Social Account Providers (e.g., Google)
 SOCIALACCOUNT_PROVIDERS = {

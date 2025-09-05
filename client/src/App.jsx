@@ -148,14 +148,10 @@ export default function App() {
                         <Route path={"/login"} element={<LoginPage onLoginSuccess={handleLogin} />} />
                         <Route path={"/signup"} element={<SignupPage />} />
                         <Route path={"/forgot-password"} element={<ForgotPasswordPage />} />
-<<<<<<< Updated upstream
                         <Route
                             path="/verify-email/:key"
                             element={<EmailVerificationPage onLoginSuccess={handleLogin} />}
                         />
-=======
-                        <Route path="/verify-email/:key" element={<EmailVerificationPage />} />
->>>>>>> Stashed changes
                         <Route path={"/projects"} element={<ProjectsPage />} />
                         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
 
