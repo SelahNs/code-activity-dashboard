@@ -82,8 +82,7 @@ export default function DashboardPage({ user, errorHandler }) { // The `allSessi
                             <FiPlus className="w-4 h-4" />
                             <span>New Project</span>
                         </Link>
-                        <button onClick={() => showNotification("This is a test error notification.", "error")} className='bg-red p-6 w-5 h-5'>Error</button>
-                        <button onClick={() => showNotification("This is a test success notification.", "success")} className='bg-green p-6 w-5 h-5'>Error</button>
+                       
                     </div>
                 </header>
 

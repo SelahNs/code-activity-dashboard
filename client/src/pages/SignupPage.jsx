@@ -1,9 +1,10 @@
 // src/pages/SignupPage.jsx
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signupSchema } from '../lib/validation';
+import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
 import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
 import useNotificationStore from '../stores/useNotificationStore';
@@ -44,7 +45,6 @@ const FormError = ({ message }) => (
     </motion.p>
 );
 
-// The `onLoginSuccess` prop is removed as it's not used in this flow
 export default function SignupPage() {
     const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', confirmPassword: '' });
     const [formErrors, setFormErrors] = useState({});
@@ -53,54 +53,39 @@ export default function SignupPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [shakeButton, setShakeButton] = useState(0);
     const [submitStatus, setSubmitStatus] = useState('idle');
-
-    // NEW STATE: To track if the form was successfully submitted
     const [isSubmitted, setIsSubmitted] = useState(false);
     const showNotification = useNotificationStore((state) => state.showNotification);
-
-    useEffect(() => {
-        const touchedFields = Object.keys(touched);
-        if (touchedFields.length === 0) return;
-
-        const result = signupSchema.safeParse(formData);
-        if (!result.success) {
-            const newErrors = {};
-            for (const issue of result.error.issues) {
-                const path = issue.path[0];
-                if (touched[path]) {
-                    if (!newErrors[path]) {
-                        newErrors[path] = { _errors: [] };
-                    }
-                    newErrors[path]._errors.push(issue.message);
-                }
-            }
-            setFormErrors(newErrors);
-        } else {
-            setFormErrors({});
-        }
-    }, [formData, touched]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prevState => ({ ...prevState, [name]: value }));
+        if (formErrors[name]) {
+            setFormErrors(prevErrors => {
+                const newErrors = { ...prevErrors };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
     };
 
     const handleBlur = (e) => {
-        setTouched(prev => ({ ...prev, [e.target.name]: true }));
+        const { name } = e.target;
+        const newTouched = { ...touched, [name]: true };
+        setTouched(newTouched);
+        const result = signupSchema.safeParse(formData);
+        if (result.success) {
+            setFormErrors({});
+        } else {
+            const formattedErrors = result.error.format();
+            const newVisibleErrors = {};
+            for (const key in newTouched) {
+                if (formattedErrors[key]) {
+                    newVisibleErrors[key] = formattedErrors[key];
+                }
+            }
+            setFormErrors(newVisibleErrors);
+        }
     };
-
-    // --- THIS IS THE MAIN MODIFIED SECTION ---
-    // src/pages/SignupPage.jsx
-
-    // src/pages/SignupPage.jsx
-
-    // src/pages/SignupPage.jsx
-
-    // src/pages/SignupPage.jsx
-
-    // src/pages/SignupPage.jsx
-
-    // src/pages/SignupPage.jsx
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -114,34 +99,50 @@ export default function SignupPage() {
 
         setSubmitStatus('loading');
         try {
+            // --- REFINEMENT 1: Conditionally add fullName to the payload ---
+            // This is a more robust way to handle an optional field.
             const payload = {
-                fullName: result.data.fullName,
                 email: result.data.email,
                 username: result.data.username,
                 password: result.data.password,
-                password2: result.data.confirmPassword
+                password2: result.data.confirmPassword,
             };
-            console.log(payload.fullName)
 
-            await fetch('http://127.0.0.1:8000/_allauth/app/v1/auth/signup', {
+            if (result.data.fullName && result.data.fullName.trim() !== '') {
+                payload.fullName = result.data.fullName;
+            }
+            
+            await apiFetch('/_allauth/app/v1/auth/signup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
-            // --- THIS IS THE NEW "SECURE AMBIGUITY" LOGIC ---
-            // REGARDLESS of the response (success or "email taken" error),
-            // we show the same success message to the user.
-            // This prevents anyone from figuring out if an email is already registered.
             setIsSubmitted(true);
+            showNotification("Account created! Please check your email to verify.", "success");
 
         } catch (error) {
-            // We still show a toast for a total failure, like a network error.
-            showNotification('Could not connect to the server. Please try again later.', 'error');
-            setSubmitStatus('idle'); // Manually reset status on network error
+            const errorData = error.data || {};
+            const newErrors = {};
+            if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {
+                if(errorData.errors && Array.isArray(errorData.errors)) {
+                    for (const err of errorData.errors) {
+                        newErrors[err.param] = { _errors: [err.message] };
+                    }
+                } else {
+                    for (const key in errorData) {
+                        if (Array.isArray(errorData[key])) {
+                           newErrors[key] = { _errors: errorData[key] };
+                        }
+                    }
+                }
+                setFormErrors(newErrors);
+                setShakeButton(p => p + 1);
+            } else {
+                showNotification(errorData.detail || 'An unknown error occurred.', 'error');
+            }
+        } finally {
+            setSubmitStatus('idle');
         }
-        // We don't need a `finally` block anymore because the success path
-        // removes the button entirely.
     };
 
     return (
@@ -152,7 +153,6 @@ export default function SignupPage() {
             <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
                 <AnimatePresence mode="wait">
                     {isSubmitted ? (
-                        // --- THIS IS THE NEW SUCCESS MESSAGE UI ---
                         <motion.div
                             key="success"
                             initial={{ opacity: 0, y: -20 }}
@@ -163,11 +163,10 @@ export default function SignupPage() {
                             <FiMail className="w-16 h-16 text-green-500 mx-auto" />
                             <h2 className="mt-4 text-2xl font-bold text-slate-800 dark:text-slate-200">Check Your Inbox</h2>
                             <p className="mt-2 text-slate-500 dark:text-slate-400">
-                                We've sent a verification link to <span className="font-semibold text-slate-700 dark:text-slate-300">{formData.email}</span>. Please click the link to activate your account.
+                                We've sent a verification link to <span className="font-semibold text-slate-700 dark:text-slate-300">{formData.email}</span> to activate your account.
                             </p>
                         </motion.div>
                     ) : (
-                        // --- YOUR EXISTING FORM CODE IS WRAPPED HERE ---
                         <motion.div key="form">
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Create your Account</h2>
@@ -176,7 +175,10 @@ export default function SignupPage() {
 
                             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                                 <div>
-                                    <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name (Optional)</label>
+                                    {/* --- REFINEMENT 2: Visually mark the field as optional --- */}
+                                    <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        Full Name <span className="text-slate-400 dark:text-slate-500">(Optional)</span>
+                                    </label>
                                     <input id="fullName" name="fullName" type="text" value={formData.fullName} onChange={handleChange} onBlur={handleBlur} placeholder="e.g., Jane Doe"
                                         className="mt-1 block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                     <AnimatePresence>{formErrors.fullName?._errors[0] && touched.fullName && <FormError message={formErrors.fullName._errors[0]} />}</AnimatePresence>
@@ -216,7 +218,6 @@ export default function SignupPage() {
                                     </div>
                                     <AnimatePresence>{formErrors.confirmPassword?._errors[0] && touched.confirmPassword && <FormError message={formErrors.confirmPassword._errors[0]} />}</AnimatePresence>
                                 </div>
-
                                 <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
                                     <button type="submit" disabled={submitStatus === 'loading'}
                                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -224,7 +225,6 @@ export default function SignupPage() {
                                     </button>
                                 </motion.div>
                             </form>
-
                             <div className="mt-6">
                                 <div className="relative">
                                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600" /></div>
@@ -243,7 +243,6 @@ export default function SignupPage() {
                                     </button>
                                 </div>
                             </div>
-
                             <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
                                 Already have an account?{' '}<Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Log in</Link>
                             </p>

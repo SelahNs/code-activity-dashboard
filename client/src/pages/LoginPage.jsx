@@ -1,94 +1,107 @@
 // src/pages/LoginPage.jsx
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
 import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
+import useAuthStore from '../stores/useAuthStore';
+import useNotificationStore from '../stores/useNotificationStore';
 
 const FormError = ({ message }) => (
-    <motion.p
-        initial={{ opacity: 0, y: -5 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -5 }}
-        transition={{ duration: 0.2 }}
-        className="mt-1 text-sm text-red-600"
-    >
+    <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="mt-1 text-sm text-red-600">
         {message}
     </motion.p>
 );
 
-export default function LoginPage({ onLoginSuccess }) {
-    const [formData, setFormData] = useState({ identifier: '', password: '', rememberMe: false });
+export default function LoginPage() {
+    const [formData, setFormData] = useState({ identifier: '', password: '' });
     const [formErrors, setFormErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [submitStatus, setSubmitStatus] = useState('idle');
-    const [loginError, setLoginError] = useState('');
     const [shakeButton, setShakeButton] = useState(0);
+    const [rememberMe, setRememberMe] = useState(true); // State for the "Remember Me" checkbox
+    const navigate = useNavigate();
+    const login = useAuthStore((state) => state.login);
+    const showNotification = useNotificationStore((state) => state.showNotification);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        const newValue = type === 'checkbox' ? checked : value;
-        setFormData(prevState => ({ ...prevState, [name]: newValue }));
-        if (loginError) setLoginError('');
+        const { name, value } = e.target;
+        setFormData(prevState => ({ ...prevState, [name]: value }));
+        if (formErrors[name] || formErrors._general) {
+            setFormErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                delete newErrors._general;
+                return newErrors;
+            });
+        }
     };
 
-    // --- YOUR PREFERRED onBlur LOGIC IS RESTORED ---
     const handleBlur = (e) => {
         const { name } = e.target;
-        setTouched(prev => ({ ...prev, [name]: true }));
+        const newTouched = { ...touched, [name]: true };
+        setTouched(newTouched);
         const result = loginSchema.safeParse(formData);
         if (result.success) {
             setFormErrors({});
         } else {
-            const newErrors = {};
-            for (const issue of result.error.issues) {
-                if (touched[issue.path[0]]) {
-                    newErrors[issue.path[0]] = { _errors: [issue.message] };
+            const formattedErrors = result.error.format();
+            const newVisibleErrors = {};
+            for (const key in newTouched) {
+                if (formattedErrors[key]) {
+                    newVisibleErrors[key] = formattedErrors[key];
                 }
             }
-            setFormErrors(newErrors);
+            setFormErrors(newVisibleErrors);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoginError('');
-        setTouched({ identifier: true, password: true });
         const result = loginSchema.safeParse(formData);
-
         if (!result.success) {
             setFormErrors(result.error.format());
+            setTouched({ identifier: true, password: true });
             setShakeButton(p => p + 1);
             return;
         }
 
         setSubmitStatus('loading');
         try {
-            // URL typo corrected from '/v/' to '/v1/'
-            const data = await apiFetch('/_allauth/app/v1/auth/login', {
+            const payload = {
+                email: result.data.identifier,
+                password: result.data.password,
+            };
+            
+            const response = await apiFetch('/_allauth/app/v1/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({
-                    email: result.data.identifier,
-                    password: result.data.password,
-                }),
+                body: JSON.stringify(payload),
             });
 
-            const { access_token, refresh_token } = data.meta;
-            const { user } = data.data;
-
-            const storage = formData.rememberMe ? localStorage : sessionStorage;
-            storage.setItem('accessToken', access_token);
-            storage.setItem('refreshToken', refresh_token);
-
-            onLoginSuccess(user, formData.rememberMe);
+            // On successful login, pass the API response and the 'rememberMe' state to the auth store
+            login(response, rememberMe);
+            
+            navigate('/');
 
         } catch (error) {
-            setLoginError('The email or password you entered is incorrect.');
-            setSubmitStatus('error');
+            const errorData = error.data || {};
+            const newErrors = {};
+
+            if (error.status === 400 && Object.keys(errorData).length > 0) {
+                for (const key in errorData) {
+                    if (key === 'non_field_errors' || key === 'detail') {
+                        newErrors._general = { _errors: Array.isArray(errorData[key]) ? errorData[key] : [errorData[key]] };
+                    } else if (Array.isArray(errorData[key])) {
+                       newErrors[key] = { _errors: errorData[key] };
+                    }
+                }
+                setFormErrors(newErrors);
+            } else {
+                showNotification(error.message || 'An unknown server error occurred.', 'error');
+            }
             setShakeButton(p => p + 1);
         } finally {
             setSubmitStatus('idle');
@@ -102,25 +115,37 @@ export default function LoginPage({ onLoginSuccess }) {
         >
             <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Welcome back</h2>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Sign in to continue to CodeDash.</p>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Welcome Back</h2>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Log in to access your dashboard.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                    <AnimatePresence>
+                        {formErrors._general?._errors[0] && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded-md text-sm"
+                            >
+                                {formErrors._general._errors[0]}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div>
-                        <label htmlFor="identifier" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-                        <input id="identifier" name="identifier" type="text" value={formData.identifier} onChange={handleChange} onBlur={handleBlur}
-                            placeholder="you@example.com"
-                            className="mt-1 block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <label htmlFor="identifier" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email or Username</label>
+                        <input id="identifier" name="identifier" type="text" value={formData.identifier} 
+                               onChange={handleChange} onBlur={handleBlur} 
+                               className="mt-1 block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         <AnimatePresence>{formErrors.identifier?._errors[0] && touched.identifier && <FormError message={formErrors.identifier._errors[0]} />}</AnimatePresence>
                     </div>
 
                     <div>
                         <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
                         <div className="relative mt-1">
-                            <input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} onBlur={handleBlur}
-                                className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                            <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password}
+                                   onChange={handleChange} onBlur={handleBlur} 
+                                   className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                 {showPassword ? <FiEyeOff /> : <FiEye />}
                             </button>
                         </div>
@@ -129,43 +154,31 @@ export default function LoginPage({ onLoginSuccess }) {
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <input id="rememberMe" name="rememberMe" type="checkbox" checked={formData.rememberMe} onChange={handleChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                            <label htmlFor="rememberMe" className="ml-2 block text-sm text-slate-800 dark:text-slate-200">Remember me</label>
+                            <input
+                                id="remember-me"
+                                name="remember-me"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-slate-600 rounded"
+                            />
+                            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">
+                                Remember me
+                            </label>
                         </div>
+                        
                         <div className="text-sm">
-                            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Forgot password?</Link>
+                            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Forgot your password?</Link>
                         </div>
                     </div>
-
-                    <AnimatePresence>{loginError && <FormError message={loginError} />}</AnimatePresence>
 
                     <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
                         <button type="submit" disabled={submitStatus === 'loading'}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
-                            {submitStatus === 'loading' ? 'Logging in...' : 'Log in'}
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
                         </button>
                     </motion.div>
                 </form>
-
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600" /></div>
-                        <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">Or continue with</span></div>
-                    </div>
-                    <div className="mt-6 grid grid-cols-1 gap-3">
-                        <button type="button" onClick={() => alert("Social login coming soon!")}
-                            className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
-                            <AiFillGithub className="w-5 h-5 mr-2" />
-                            Continue with GitHub
-                        </button>
-                        <button type="button" onClick={() => alert("Social login coming soon!")}
-                            className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
-                            <AiOutlineGoogle className="w-5 h-5 mr-2" />
-                            Continue with Google
-                        </button>
-                    </div>
-                </div>
 
                 <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     Don't have an account?{' '}<Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Sign up</Link>

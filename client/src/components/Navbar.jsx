@@ -13,7 +13,6 @@ export default function Navbar({ user, onLogout }) {
     const location = useLocation();
     const currentPath = location.pathname;
 
-    // --- RESTORED: All 5 navigation links are back ---
     const mainNavLinks = [
         { path: "/", label: "Dashboard" },
         { path: "/projects", label: "Projects" },
@@ -21,13 +20,11 @@ export default function Navbar({ user, onLogout }) {
         { path: "/focus", label: "Focus" },
         { path: "/goals", label: "Goals" },
     ];
-    
-    // --- RESTORED: Your original function for link styling ---
+
     const getLinkClassName = (path, isMobile = false) => {
         const isActive = currentPath === path;
         let classes = `relative z-10 block w-full px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ease-in-out ${isMobile ? 'text-center text-base' : 'text-left'}`;
         if (isActive) {
-            // Active link text is now slightly bolder and more prominent
             classes += ' text-blue-600 dark:text-blue-400 font-semibold';
         } else {
             classes += ' text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white';
@@ -35,7 +32,6 @@ export default function Navbar({ user, onLogout }) {
         return classes;
     };
 
-    // Close profile dropdown if clicked outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -50,17 +46,14 @@ export default function Navbar({ user, onLogout }) {
         <nav className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
-                    {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-slate-200">
                         <BsCodeSlash className="text-blue-600 dark:text-blue-500" />
                         <span>CodeDash</span>
                     </Link>
 
-                    {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-6">
                         {user ? (
                             <>
-                                {/* --- RESTORED: Your original nav link style --- */}
                                 <ul className="flex items-center space-x-2">
                                     {mainNavLinks.map(link => (
                                         <li className="relative" key={link.path}>
@@ -78,7 +71,6 @@ export default function Navbar({ user, onLogout }) {
                                     ))}
                                 </ul>
 
-                                {/* --- REFINED: The improved profile dropdown --- */}
                                 <div className="relative" ref={profileMenuRef}>
                                     <button
                                         onClick={() => setProfileMenuOpen(p => !p)}
@@ -103,7 +95,7 @@ export default function Navbar({ user, onLogout }) {
                                                 <div className="py-1">
                                                     <Link to="/settings" className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60" onClick={() => setProfileMenuOpen(false)}>
                                                         <FiSettings className="w-4 h-4" />
-                                                        <span>Account Settings</span>
+                                                        <span>Settings</span>
                                                     </Link>
                                                 </div>
                                                 <div className="py-1 border-t border-slate-200 dark:border-slate-700">
@@ -118,7 +110,6 @@ export default function Navbar({ user, onLogout }) {
                                 </div>
                             </>
                         ) : (
-                            // Logged-out Desktop Links
                             <ul className="flex items-center space-x-2">
                                 <li><Link to="/login" className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Login</Link></li>
                                 <li><Link to="/signup" className="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">Sign Up</Link></li>
@@ -126,7 +117,6 @@ export default function Navbar({ user, onLogout }) {
                         )}
                     </div>
 
-                    {/* Mobile Menu Button */}
                     <div className="md:hidden">
                         <button onClick={() => setMobileMenuOpen(p => !p)} className="p-2 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
                             <span className="sr-only">Open main menu</span>
@@ -136,7 +126,6 @@ export default function Navbar({ user, onLogout }) {
                 </div>
             </div>
 
-            {/* --- REFINED: The improved Mobile Menu --- */}
             <AnimatePresence>
                 {mobileMenuOpen && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="md:hidden overflow-hidden">
@@ -163,7 +152,7 @@ export default function Navbar({ user, onLogout }) {
                             ) : (
                                 <>
                                     <Link to="/login" className="block text-center px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-                                    <Link to="/signup" className="block text-center px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+                                    <Link to="/signup" className="block w-full text-center px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
                                 </>
                             )}
                         </div>

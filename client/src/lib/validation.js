@@ -9,10 +9,12 @@ const twitterPattern = /^(https?:\/\/)?(www\.)?(twitter|x)\.com\/(\w){1,15}(\/)?
 // --- Signup Schema ---
 export const signupSchema = z.object({
     fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }).optional().or(z.literal('')),
-    username: z.string().min(3, { message: "Username must be at least 3 characters." }),
-    email: z.string().email({ message: "Please enter a valid email address." }),
-    password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-    confirmPassword: z.string()
+    username: z.string().min(1, {message: "Username is required"}).min(3, { message: "Username must be at least 3 characters." }).regex(/^[a-zA-Z0-9_]+$/, {
+        message: "Can only contain letters, numbers, and underscores.", // Message for invalid characters
+    }),
+    email: z.string().min(1, {message: "Email is required"}).email({ message: "Please enter a valid email address." }),
+    password: z.string().min(1, {message: "Password is required"}).min(8, { message: "Password must be at least 8 characters." }),
+    confirmPassword: z.string().min(1, {message: "Please confirm your password"})
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
