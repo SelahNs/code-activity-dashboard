@@ -71,11 +71,22 @@ export default function LoginPage() {
 
         setSubmitStatus('loading');
         try {
+            const { identifier, password } = result.data;
+
+            // A simple regex to check if the identifier contains an '@' symbol.
+            const isEmail = /@/.test(identifier);
+
+            // Build the payload dynamically
             const payload = {
-                email: result.data.identifier,
-                password: result.data.password,
+                password: password,
             };
-            
+
+            if (isEmail) {
+                payload.email = identifier;
+            } else {
+                payload.username = identifier;
+            }
+
             const response = await apiFetch('/_allauth/app/v1/auth/login', {
                 method: 'POST',
                 body: JSON.stringify(payload),
@@ -83,7 +94,7 @@ export default function LoginPage() {
 
             // On successful login, pass the API response and the 'rememberMe' state to the auth store
             login(response, rememberMe);
-            
+
             navigate('/');
 
         } catch (error) {
@@ -95,7 +106,7 @@ export default function LoginPage() {
                     if (key === 'non_field_errors' || key === 'detail') {
                         newErrors._general = { _errors: Array.isArray(errorData[key]) ? errorData[key] : [errorData[key]] };
                     } else if (Array.isArray(errorData[key])) {
-                       newErrors[key] = { _errors: errorData[key] };
+                        newErrors[key] = { _errors: errorData[key] };
                     }
                 }
                 setFormErrors(newErrors);
@@ -122,7 +133,7 @@ export default function LoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                     <AnimatePresence>
                         {formErrors._general?._errors[0] && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                                 className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded-md text-sm"
                             >
@@ -133,9 +144,9 @@ export default function LoginPage() {
 
                     <div>
                         <label htmlFor="identifier" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email or Username</label>
-                        <input id="identifier" name="identifier" type="text" value={formData.identifier} 
-                               onChange={handleChange} onBlur={handleBlur} 
-                               className="mt-1 block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <input id="identifier" name="identifier" type="text" value={formData.identifier}
+                            onChange={handleChange} onBlur={handleBlur}
+                            className="mt-1 block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                         <AnimatePresence>{formErrors.identifier?._errors[0] && touched.identifier && <FormError message={formErrors.identifier._errors[0]} />}</AnimatePresence>
                     </div>
 
@@ -143,8 +154,8 @@ export default function LoginPage() {
                         <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
                         <div className="relative mt-1">
                             <input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password}
-                                   onChange={handleChange} onBlur={handleBlur} 
-                                   className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                onChange={handleChange} onBlur={handleBlur}
+                                className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                 {showPassword ? <FiEyeOff /> : <FiEye />}
                             </button>
@@ -166,7 +177,7 @@ export default function LoginPage() {
                                 Remember me
                             </label>
                         </div>
-                        
+
                         <div className="text-sm">
                             <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Forgot your password?</Link>
                         </div>

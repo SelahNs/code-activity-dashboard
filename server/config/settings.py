@@ -204,7 +204,7 @@ HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 
 # Basic account setup
 ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.CustomSignupAddonForm'
-ACCOUNT_LOGIN_METHODS = ["email"]
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
