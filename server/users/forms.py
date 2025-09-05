@@ -7,7 +7,7 @@ class CustomSignupAddonForm(forms.Form):
     the ACCOUNT_SIGNUP_FORM_CLASS setting. It handles any fields
     beyond what the default allauth form handles.
     """
-    fullName = forms.CharField(max_length=255, required=True)
+    fullName = forms.CharField(max_length=255, required=False)
 
     def signup(self, request, user):
         """
@@ -15,6 +15,6 @@ class CustomSignupAddonForm(forms.Form):
         We are passed the new user instance and can now save our
         additional data to it.
         """
-        user.full_name = self.cleaned_data['fullName']
+        user.full_name = self.cleaned_data.get('fullName', '')
         user.save()
         return user
