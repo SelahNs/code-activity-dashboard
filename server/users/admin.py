@@ -6,4 +6,6 @@ from allauth.account.admin import EmailConfirmationAdmin
 
 # Register your models here.
 admin.site.register(CustomUser, UserAdmin)
+
+# This tells the admin site to display the EmailConfirmation model
 admin.site.register(EmailConfirmation, EmailConfirmationAdmin)

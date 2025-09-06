@@ -130,22 +130,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 # CORS SETTINGS
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://localhost:5173$",
-    r"^http://127\.0\.0\.1:5173$",
-]
-
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-    "x-client-secret",  # <-- We must explicitly allow our custom header
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Your Vite/React frontend
+    "http://127.0.0.1:5173",
+    # Add your production frontend URL here when you deploy
+    # "https://your-production-frontend.com",
 ]
 
 # --- ALLAUTH & API SETTINGS ---
@@ -166,7 +155,6 @@ HEADLESS_FRONTEND_URLS = {
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'users.permissions.PublicClientAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
@@ -216,9 +204,10 @@ HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 
 # Basic account setup
 ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.CustomSignupAddonForm'
-ACCOUNT_LOGIN_METHODS = ["username", "email"]
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND = True
 
 # Social Account Providers (e.g., Google)
 SOCIALACCOUNT_PROVIDERS = {

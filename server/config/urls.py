@@ -16,13 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from users.views import ResendVerificationView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('_allauth/', include('allauth.headless.urls')),
-    path('api/auth/', include('users.urls')),
-    path('api/resend-verification', ResendVerificationView.as_view(), name='resend-verification'),
-    path('', include('users.urls')),
+    path('api/', include('users.urls')),
 ]

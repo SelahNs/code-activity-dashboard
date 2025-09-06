@@ -2,15 +2,13 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from .models import UserProfile
 from .serializers import UserProfileSerializer
-import os
+from allauth.account.models import EmailAddress, EmailConfirmation
 from allauth.account.adapter import get_adapter
-from django.contrib.auth import get_user_model
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import permissions, status
-from allauth.account.models import EmailAddress
-
-
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework import status
+import os
 # Create your views here.
 
 
@@ -28,31 +26,49 @@ class UserProfileDetail(generics.RetrieveUpdateAPIView):
         """
         return self.request.user.userprofile
 
-User = get_user_model()
 
-class ResendVerificationView(APIView):
-    permission_classes = [permissions.AllowAny]
+class ResendVerificationLinkView(APIView):
+    permission_classes = [AllowAny]  # Anyone can request a new link
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         email = request.data.get("email")
 
         if not email:
-            return Response({"email": "Email field is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # This is the correct, direct way to handle this.
-        # We query the EmailAddress model directly.
+            return Response(
+                {"error": "Email field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             email_address = EmailAddress.objects.get(email__iexact=email)
-            
-            # If the email is found but is not yet verified...
-            if not email_address.verified:
-                # ...we call the send_confirmation method ON the object itself.
-                email_address.send_confirmation(request)
-
         except EmailAddress.DoesNotExist:
-            # If the email does not exist in our system at all,
-            # we do nothing. This prevents email enumeration.
-            pass
-        
-        # In all cases, we return the same success response as per our API Contract.
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            # Always return a success response to prevent email enumeration
+            return Response(
+                {"detail": "If an account with this email exists, a new verification link has been sent."},
+                status=status.HTTP_200_OK
+            )
+
+        # Check if the email is already verified
+        if email_address.verified:
+            return Response(
+                {"error": "This email address is already verified."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # --- This is the logic you found ---
+        # Delete any old, pending confirmations for this email
+        EmailConfirmation.objects.filter(email_address=email_address).delete()
+
+        # Create a new confirmation
+        confirmation = EmailConfirmation.create(email_address)
+
+        # Send the email using the allauth adapter
+        adapter = get_adapter(self.request)
+        adapter.send_confirmation_mail(
+            self.request, confirmation, signup=False)
+        # --- End of your logic ---
+
+        return Response(
+            {"detail": "If an account with this email exists, a new verification link has been sent."},
+            status=status.HTTP_200_OK
+        )
