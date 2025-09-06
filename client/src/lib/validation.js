@@ -8,23 +8,23 @@ const twitterPattern = /^(https?:\/\/)?(www\.)?(twitter|x)\.com\/(\w){1,15}(\/)?
 
 // --- Signup Schema ---
 export const signupSchema = z.object({
-    fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }).optional().or(z.literal('')),
-    username: z.string().min(1, {message: "Username is required"}).min(3, { message: "Username must be at least 3 characters." }).regex(/^[a-zA-Z0-9_]+$/, {
+    fullName: z.string().trim().min(2, { message: "Full name must be at least 2 characters." }).optional().or(z.literal('')),
+    username: z.string().trim().min(1, {message: "Username is required"}).min(3, { message: "Username must be at least 3 characters." }).regex(/^[a-zA-Z0-9_]+$/, {
         message: "Can only contain letters, numbers, and underscores.", // Message for invalid characters
     }),
-    email: z.string().min(1, {message: "Email is required"}).email({ message: "Please enter a valid email address." }),
+    email: z.string().trim().min(1, {message: "Email is required"}).email({ message: "Please enter a valid email address." }),
     password: z.string().min(1, {message: "Password is required"}).min(8, { message: "Password must be at least 8 characters." }),
     confirmPassword: z.string().min(1, {message: "Please confirm your password"})
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
 });
-
+// add trim for others too
 
 // --- Profile Schema (The Master Blueprint) ---
 export const profileSchema = z.object({
-    fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
-    username: z.string().min(3, { message: "Username must be at least 3 characters." }),
+    fullName: z.string().trim().min(2, { message: "Full name must be at least 2 characters." }),
+    username: z.string().trim().min(3, { message: "Username must be at least 3 characters." }),
     email: z.string().email(), // Not editable, so no validation message needed for user
     bio: z.string().max(300, { message: "Bio cannot exceed 300 characters." }).optional(),
     avatarId: z.string().optional(),
@@ -32,7 +32,7 @@ export const profileSchema = z.object({
     isHireable: z.boolean(),
     socialLinks: z.object({
 
-        github: z.string().optional().or(z.literal(''))
+        github: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true; // Optional field
                 return githubUsernamePattern.test(val) || githubUrlPattern.test(val);
@@ -40,7 +40,7 @@ export const profileSchema = z.object({
                 message: "Invalid GitHub username or URL.",
             }),
 
-        linkedin: z.string().optional().or(z.literal(''))
+        linkedin: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true;
                 // LinkedIn usernames are less strict, so we allow a wider pattern
@@ -50,7 +50,7 @@ export const profileSchema = z.object({
                 message: "Invalid LinkedIn username or URL.",
             }),
 
-        twitter: z.string().optional().or(z.literal(''))
+        twitter: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true;
                 const handlePattern = /^@?(\w){1,15}$/;
@@ -62,7 +62,7 @@ export const profileSchema = z.object({
 });
 
 export const loginSchema = z.object({
-    identifier: z.string().min(1, "Email or username is required."),
+    identifier: z.string().trim().min(1, "Email or username is required."),
     password: z.string().min(1, "Password is required."),
 }).superRefine(({ identifier }, ctx) => {
     // If it contains '@', validate as an email
@@ -88,3 +88,7 @@ export const loginSchema = z.object({
         }
     }
 });
+
+export const resendVerificationSchema = z.object({
+    email: z.string().trim().min(1, {message: "Email is required."}).email({message: "Please enter a valid email address."})
+})

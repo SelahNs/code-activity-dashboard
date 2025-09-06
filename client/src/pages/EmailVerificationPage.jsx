@@ -39,40 +39,36 @@ export default function EmailVerificationPage() {
 
         const verifyEmailKey = async () => {
             try {
-                // --- ESSENTIAL REFINEMENT 2: Use the environment variable for the URL ---
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/_allauth/app/v1/auth/email/verify`, {
+                // 1. Use our robust, centralized apiFetch wrapper.
+                //    It handles the URL, headers, and body stringification.
+                const data = await apiFetch('/_allauth/app/v1/auth/email/verify', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key }),
                 });
 
-                const data = await response.json();
+                // 2. The success logic for a 200 OK response.
+                //    apiFetch automatically throws for non-ok responses, so we don't need to check response.status here.
+                setVerificationStatus('success');
+                login(data, true); // Use the central login function.
+                showNotification(`Welcome! Your email has been verified.`, 'success');
+                setTimeout(() => {
+                    navigate('/'); // Redirect to home/dashboard
+                }, 3000);
 
-                // --- YOUR CORRECT LOGIC IS PRESERVED EXACTLY AS YOU WROTE IT ---
-                if (response.status === 200 || response.status === 401) {
-                    setVerificationStatus('success');
-
-                    if (data.user && data.access_token) {
-                        // --- ESSENTIAL REFINEMENT 1: Use the auth store instead of localStorage ---
-                        login(data, true); // Use the central login function. Set "Remember Me" to true.
-                        showNotification(`Welcome! Your email has been verified.`, 'success');
-                        setTimeout(() => {
-                            navigate('/'); // Redirect to home/dashboard
-                        }, 3000);
-                    } else {
-                        // This is the "just verify" flow
-                        showNotification('Your email has been successfully verified! Please log in.', 'success');
-                        setTimeout(() => {
-                            navigate('/login'); // Redirect to login page
-                        }, 3000);
-                    }
-                } else {
-                    throw new Error(data.detail || 'Verification failed. The link may be invalid or expired.');
-                
-                }
             } catch (error) {
-                setErrorMessage(error.message);
-                setVerificationStatus('error');
+                // 3. This catch block now handles errors from apiFetch.
+                if (error.status === 401) {
+                    // This is the special "just verify" success case.
+                    setVerificationStatus('success');
+                    showNotification('Your email has been successfully verified! Please log in.', 'success');
+                    setTimeout(() => {
+                        navigate('/login'); // Redirect to login page
+                    }, 3000);
+                } else {
+                    // This handles all other errors (e.g., 400 for an invalid key).
+                    setErrorMessage(error.data?.detail || "The verification link is invalid, has expired, or was already used.");
+                    setVerificationStatus('error');
+                }
             }
         };
 
