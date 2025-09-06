@@ -71,6 +71,12 @@ export default function LoginPage() {
 
         setSubmitStatus('loading');
         try {
+            const { identifier, password } = result.data;
+
+            // A simple regex to check if the identifier contains an '@' symbol.
+            const isEmail = /@/.test(identifier);
+
+            // Build the payload dynamically
             const payload = {
                 password: result.data.password,
             };
