@@ -34,13 +34,13 @@ export default function ResendVerificationPage() {
         setSubmitStatus('loading');
 
         try {
-            await apiFetch('/api/resend-verification', {
+            await apiFetch('/api/resend-verification/', {
                 method: 'POST',
-                headers: {
-                    // This is the secret "password" that proves to the backend
-                    // that this request is from our trusted frontend.
-                    'X-Client-Secret': 'a-very-secret-and-hard-to-guess-string'
-                },
+                // headers: {
+                //     // This is the secret "password" that proves to the backend
+                //     // that this request is from our trusted frontend.
+                //     'X-Client-Secret': 'a-very-secret-and-hard-to-guess-string'
+                // },
                 // Stringify an object containing the validated email.
                 body: JSON.stringify({ email: result.data.email }),
             });

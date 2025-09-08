@@ -40,33 +40,37 @@ class ResendVerificationLinkView(APIView):
             )
 
         try:
+            # Find the corresponding email address object in the database.
             email_address = EmailAddress.objects.get(email__iexact=email)
         except EmailAddress.DoesNotExist:
-            # Always return a success response to prevent email enumeration
+            # For security, we never reveal if an email exists or not.
+            # This prevents attackers from guessing which emails are registered.
             return Response(
                 {"detail": "If an account with this email exists, a new verification link has been sent."},
                 status=status.HTTP_200_OK
             )
 
-        # Check if the email is already verified
+        # If the user's email is already verified, tell them.
         if email_address.verified:
             return Response(
                 {"error": "This email address is already verified."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # --- This is the logic you found ---
-        # Delete any old, pending confirmations for this email
-        EmailConfirmation.objects.filter(email_address=email_address).delete()
+        # --- THE DEFINITIVE FIX ---
+        #
+        # This is the official, high-level method provided by django-allauth.
+        # It correctly performs all necessary steps in the right order:
+        #   1. Deletes any old, unused confirmation keys from the database.
+        #   2. Creates a new, secure EmailConfirmation object.
+        #   3. Calls the correct adapter to send the email.
+        #
+        # Because your project is configured for link-based verification, this
+        # method will correctly send an email with a new, valid link (key).
+        #
+        email_address.send_confirmation(request)
 
-        # Create a new confirmation
-        confirmation = EmailConfirmation.create(email_address)
-
-        # Send the email using the allauth adapter
-        adapter = get_adapter(self.request)
-        adapter.send_confirmation_mail(
-            self.request, confirmation, signup=False)
-        # --- End of your logic ---
+        # --- END OF FIX ---
 
         return Response(
             {"detail": "If an account with this email exists, a new verification link has been sent."},

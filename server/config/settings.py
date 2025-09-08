@@ -206,7 +206,7 @@ HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
 ACCOUNT_SIGNUP_FORM_CLASS = 'users.forms.CustomSignupAddonForm'
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND = True
 
 # Social Account Providers (e.g., Google)

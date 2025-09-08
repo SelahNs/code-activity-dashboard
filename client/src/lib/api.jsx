@@ -25,9 +25,9 @@ export const apiFetch = async (endpoint, options = {}) => {
     };
 
     // If a token exists, add the "Bearer" authorization header.
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-    }
+    // if (accessToken) {
+    //     headers['Authorization'] = `Bearer ${accessToken}`;
+    // }
 
     // Combine the default options, any passed-in options, and the final headers.
     const config = {
