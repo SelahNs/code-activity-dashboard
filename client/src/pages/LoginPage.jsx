@@ -102,19 +102,23 @@ export default function LoginPage() {
             const errorData = error.data || {};
             const newErrors = {};
 
-            if (error.status === 400 && Object.keys(errorData).length > 0) {
-                for (const key in errorData) {
-                    if (key === 'non_field_errors' || key === 'detail') {
-                        newErrors._general = { _errors: Array.isArray(errorData[key]) ? errorData[key] : [errorData[key]] };
-                    } else if (Array.isArray(errorData[key])) {
-                        newErrors[key] = { _errors: errorData[key] };
+            if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    for (const err of errorData.errors) {
+                        newErrors[err.param] = { _errors: [err.message] };
+                    }
+                } else {
+                    for (const key in errorData) {
+                        if (Array.isArray(errorData[key])) {
+                            newErrors[key] = { _errors: errorData[key] };
+                        }
                     }
                 }
                 setFormErrors(newErrors);
+                setShakeButton(p => p + 1);
             } else {
-                showNotification(error.message || 'An unknown server error occurred.', 'error');
+                showNotification(errorData.detail || 'An unknown error occurred.', 'error');
             }
-            setShakeButton(p => p + 1);
         } finally {
             setSubmitStatus('idle');
         }

@@ -16,7 +16,7 @@ const BASE_URL = 'http://127.0.0.1:8000'; // Your backend server address
  */
 export const apiFetch = async (endpoint, options = {}) => {
     // Get the access token from localStorage.
-    const accessToken = localStorage.getItem('accessToken');
+    // const accessToken = localStorage.getItem('accessToken');
 
     // Set up the default headers.
     const headers = {
@@ -25,7 +25,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     };
 
     // If a token exists, add the "Bearer" authorization header.
-    // if (accessToken) {
+    // if (accessToken && accessToken !== 'null') {
     //     headers['Authorization'] = `Bearer ${accessToken}`;
     // }
 
@@ -39,6 +39,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     const url = `${BASE_URL}${endpoint}`;
 
     try {
+       
         const response = await fetch(url, config);
 
         // Some successful API calls (like a DELETE request) might return a 204 No Content status.
@@ -53,6 +54,9 @@ export const apiFetch = async (endpoint, options = {}) => {
         // If the response was not successful (e.g., 400, 401, 404, 500), throw an error.
         // We throw an object containing the status and the parsed data so our components
         // can inspect the error details from the backend.
+        if (response.status === 0) {
+            throw new Error('Network error');
+        }
         if (!response.ok) {
             throw { status: response.status, data };
         }

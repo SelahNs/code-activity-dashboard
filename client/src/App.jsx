@@ -21,6 +21,7 @@ import codingData from './data/data.json';
 import Toast from './components/Toast'
 import useNotificationStore from "./stores/useNotificationStore";
 import ResendVerificationPage from "./pages/ResendVerificationPage";
+import ResetPasswordPage from "./pages/resetPasswordPage";
 // This is now the main "brain" of your application
 export default function App() {
     // 1. All state now lives here, in the top-level component
@@ -155,7 +156,7 @@ export default function App() {
                         />
                         <Route path={"/projects"} element={<ProjectsPage />} />
                         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-                        <Route path="/resend-verification" element={<ResendVerificationPage />} />
+                        <Route path="/forgot-password/:key" element={<ResetPasswordPage />} />
 
                     </Routes>
                 </AnimatePresence>

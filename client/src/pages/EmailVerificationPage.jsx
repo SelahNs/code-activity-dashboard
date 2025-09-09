@@ -8,7 +8,7 @@ import { FiLoader, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 // --- ESSENTIAL REFINEMENT 1: Import the central auth store ---
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
-
+import { apiFetch } from '../lib/api';
 
 const Spinner = () => (
     <motion.div

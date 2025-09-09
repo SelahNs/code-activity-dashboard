@@ -9,7 +9,7 @@ import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
 import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
 import useNotificationStore from '../stores/useNotificationStore';
 
-const PasswordStrengthIndicator = ({ password }) => {
+export const PasswordStrengthIndicator = ({ password }) => {
     const getStrength = () => {
         let score = 0;
         let feedback = "Weak";
@@ -39,7 +39,7 @@ const PasswordStrengthIndicator = ({ password }) => {
     );
 };
 
-const FormError = ({ message }) => (
+export const FormError = ({ message }) => (
     <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="mt-1 text-sm text-red-600">
         {message}
     </motion.p>
@@ -111,7 +111,7 @@ export default function SignupPage() {
             if (result.data.fullName && result.data.fullName.trim() !== '') {
                 payload.fullName = result.data.fullName;
             }
-            
+
             await apiFetch('/_allauth/app/v1/auth/signup', {
                 method: 'POST',
                 body: JSON.stringify(payload),
@@ -124,14 +124,14 @@ export default function SignupPage() {
             const errorData = error.data || {};
             const newErrors = {};
             if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {
-                if(errorData.errors && Array.isArray(errorData.errors)) {
+                if (errorData.errors && Array.isArray(errorData.errors)) {
                     for (const err of errorData.errors) {
                         newErrors[err.param] = { _errors: [err.message] };
                     }
                 } else {
                     for (const key in errorData) {
                         if (Array.isArray(errorData[key])) {
-                           newErrors[key] = { _errors: errorData[key] };
+                            newErrors[key] = { _errors: errorData[key] };
                         }
                     }
                 }
