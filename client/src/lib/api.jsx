@@ -2,71 +2,136 @@
 
 const BASE_URL = 'http://127.0.0.1:8000'; // Your backend server address
 
+// src/lib/api.js
+
 /**
- * A wrapper around the native `fetch` function that automatically handles:
- *  - Prepending the base API URL.
- *  - Adding the `Content-Type: application/json` header.
- *  - Attaching the JWT access token to the `Authorization` header if it exists.
- *  - Parsing the JSON response.
- *  - Throwing a structured error on a failed (non-ok) response.
+ * A robust, simplified fetch wrapper for API calls.
  *
- * @param {string} endpoint - The API endpoint to call (e.g., '/api/profile/').
- * @param {object} [options={}] - Optional configuration for the fetch call (e.g., method, body).
- * @returns {Promise<any>} A promise that resolves with the JSON data from the API.
+ * @param {string} endpoint - The API endpoint (e.g., '/auth/login').
+ * @param {object} [options={}] - Optional configuration for the fetch call.
+ * @returns {Promise<any>} A promise that resolves with the JSON data on success.
+ * @throws {{status: number, data: any}} A structured error object on failure.
  */
 export const apiFetch = async (endpoint, options = {}) => {
-    // Get the access token from localStorage.
-    // const accessToken = localStorage.getItem('accessToken');
-
-    // Set up the default headers.
+    // 1. Set up the request
     const headers = {
         'Content-Type': 'application/json',
-        ...options.headers, // Allow custom headers to be passed in and override defaults.
+        ...options.headers,
     };
-
-    // If a token exists, add the "Bearer" authorization header.
-    // if (accessToken && accessToken !== 'null') {
-    //     headers['Authorization'] = `Bearer ${accessToken}`;
-    // }
-
-    // Combine the default options, any passed-in options, and the final headers.
-    const config = {
-        ...options,
-        headers,
-    };
-
-    // Construct the full URL for the API request.
-    const url = `${BASE_URL}${endpoint}`;
+    const config = { ...options, headers };
+    const url = `http://127.0.0.1:8000${endpoint}`;
 
     try {
-       
         const response = await fetch(url, config);
 
-        // Some successful API calls (like a DELETE request) might return a 204 No Content status.
-        // In this case, there is no JSON body to parse, so we return a simple success object.
-        if (response.status === 204) {
-            return { ok: response.ok, status: response.status };
+        // 2. Safely get the response body as text. This step CANNOT fail.
+        const responseText = await response.text();
+
+        // 3. Try to parse the text as JSON. If it's empty, data will be null.
+        //    If it's not valid JSON, we'll create a fallback error object.
+        let data = null;
+        if (responseText) {
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("The server sent a response that was not valid JSON.", responseText);
+                // Create a consistent error data object for non-JSON responses
+                data = { detail: "The server's response was unreadable." };
+            }
         }
 
-        // For all other responses, try to parse the JSON body.
-        const data = await response.json();
-
-        // If the response was not successful (e.g., 400, 401, 404, 500), throw an error.
-        // We throw an object containing the status and the parsed data so our components
-        // can inspect the error details from the backend.
-        if (response.status === 0) {
-            throw new Error('Network error');
-        }
+        // 4. Check if the request was successful (status 200-299).
+        //    This is the single source of truth for success or failure.
         if (!response.ok) {
-            throw { status: response.status, data };
+            // It's an error. Throw our predictable error object.
+            // The `data` will be the parsed JSON error, or our fallback object.
+            throw { status: response.status, data: data };
         }
 
-        // If the response was successful, return the parsed JSON data.
+        // 5. If we reach here, it's a success. Return the data.
         return data;
+
     } catch (error) {
-        // Log the error for debugging purposes and re-throw it so that the
-        // calling component's own `catch` block can handle it.
-        console.error(`API Fetch Error: ${error.status}`, error.data || error.message);
+        // This catch block handles two things:
+        // 1. The custom error we just threw above.
+        // 2. A true network failure (e.g., server is offline).
+
+        // If it's not our structured error, it's a network problem.
+        if (!error.status) {
+            console.error("A network error occurred:", error);
+            throw {
+                status: 0, // Use 0 for network errors
+                data: { detail: "Could not connect to the server." },
+            };
+        }
+
+        // Otherwise, just re-throw our structured error for the component to handle.
         throw error;
     }
+};
+
+export const authApiFetch = async (endpoint, options = {}) => {
+    // A function to perform the actual fetch with the current token
+    const performFetch = async () => {
+        const accessToken = useAuthStore.getState().accessToken;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        const config = { ...options, headers };
+        const url = `${BASE_URL}${endpoint}`;
+        return fetch(url, config);
+    };
+
+    let response = await performFetch();
+
+    if (response.status === 401) {
+        console.log('Caught 401 Unauthorized. Attempting to refresh token...');
+        const { refreshToken, login, logout, user, rememberMe } = useAuthStore.getState();
+
+        if (!refreshToken) {
+            logout();
+            window.location.href = '/login';
+            throw new Error('No refresh token available. User logged out.');
+        }
+
+        try {
+            // Make the call to the refresh endpoint
+            const refreshResponse = await fetch(`${BASE_URL}/_allauth/app/v1/auth/token/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+
+            const refreshData = await refreshResponse.json();
+
+            if (!refreshResponse.ok) {
+                console.error("Refresh token is invalid or expired. Logging out.");
+                logout();
+                window.location.href = '/login';
+                throw new Error('Session expired. Please log in again.');
+            }
+
+            console.log('Token refresh successful. Retrying original request.');
+            // Update the store with the new tokens
+            login({ user, ...refreshData }, rememberMe);
+
+            // Retry the original request with the new token
+            response = await performFetch();
+
+        } catch (error) {
+            console.error('An error occurred during token refresh:', error);
+            throw error; // Re-throw the error to be caught by the component
+        }
+    }
+
+    // Process the final response (either original or retried)
+    if (response.status === 204) return { ok: true };
+    const data = await response.json();
+    if (!response.ok) throw { status: response.status, data };
+    return data;
 };

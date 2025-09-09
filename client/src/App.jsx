@@ -157,6 +157,7 @@ export default function App() {
                         <Route path={"/projects"} element={<ProjectsPage />} />
                         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
                         <Route path="/forgot-password/:key" element={<ResetPasswordPage />} />
+                        <Route path="/resend-verification" element={<ResendVerificationPage />} />
 
                     </Routes>
                 </AnimatePresence>

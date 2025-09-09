@@ -8,28 +8,44 @@ export const dynamicStorage = {
     useLocalStorage: false,
 
     setItem: (name, value) => {
+        // FIX: The state 'value' is an object. We MUST stringify it before saving.
+        const stringifiedValue = JSON.stringify(value);
+
         if (dynamicStorage.useLocalStorage) {
-            localStorage.setItem(name, value);
+            localStorage.setItem(name, stringifiedValue); // Use the stringified value
         } else {
-            sessionStorage.setItem(name, value);
+            sessionStorage.setItem(name, stringifiedValue); // Use the stringified value
         }
     },
 
     getItem: (name) => {
-        // We check both storages to handle cases where a user might log in with "Remember Me"
-        // and then log in again without it in the same session.
+        // Your logic for checking both storages is great. Let's keep it.
         const fromLocalStorage = localStorage.getItem(name);
         const fromSessionStorage = sessionStorage.getItem(name);
 
-        // Prioritize the storage type that is currently supposed to be in use.
-        // Fall back to the other if needed.
-        return dynamicStorage.useLocalStorage
+        // Determine which stored string to use, based on your original logic.
+        const storedValue = dynamicStorage.useLocalStorage
             ? fromLocalStorage
             : (fromSessionStorage || fromLocalStorage);
+
+        // If nothing was found, return null as expected.
+        if (!storedValue) {
+            return null;
+        }
+
+        try {
+            // FIX: The stored value is a string. We MUST parse it back into an object.
+            return JSON.parse(storedValue);
+        } catch (error) {
+            // If the stored data is corrupted and not valid JSON, we'll log an error
+            // and return null to prevent the app from crashing.
+            console.error("Error parsing stored auth data:", error);
+            return null;
+        }
     },
 
     removeItem: (name) => {
-        // On logout, we should clear the auth key from both storages to be safe.
+        // Your existing logic here is perfect and robust. No changes needed.
         localStorage.removeItem(name);
         sessionStorage.removeItem(name);
     },
