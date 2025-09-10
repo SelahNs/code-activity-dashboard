@@ -69,7 +69,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -129,12 +129,24 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-# CORS SETTINGS
+
+# CORS & CSRF SETTINGS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Your Vite/React frontend
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     # Add your production frontend URL here when you deploy
     # "https://your-production-frontend.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000/",
+    "http://127.0.0.1:3000/",
 ]
 
 # --- ALLAUTH & API SETTINGS ---
@@ -149,6 +161,9 @@ FRONTEND_URL = "http://localhost:5173"
 HEADLESS_FRONTEND_URLS = {
     "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
     "account_reset_password_from_key": f"{FRONTEND_URL}/forgot-password/{{key}}",
+    "account_signup": f"{FRONTEND_URL}/signup",
+    "socialaccount_login_error": f"{FRONTEND_URL}/login",
+    "account_reset_password": f"{FRONTEND_URL}/forgot-password",
 }
 
 # 2. DJANGO REST FRAMEWORK & JWT CONFIGURATION
@@ -198,6 +213,8 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',  # allauth
 ]
 
+# Prevents html templates from being accessed and sent
+HEADLESS_ONLY = True
 # This is the key setting that tells allauth to use our custom JWT strategy,
 # which prevents server-side sessions from being created.
 HEADLESS_TOKEN_STRATEGY = "users.tokens.JWTTokenStrategy"
@@ -209,6 +226,15 @@ ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND = True
 
+# 4. Social Account Settings
+# ------------------------------------------------------------------------------
+# When attempting to login/signup with a social account, if an email with that
+# account, already exists, allow login.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+# When attempting to login/signup with a social account, if an email with that
+# account already exists connect the provider to that account.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 # Social Account Providers (e.g., Google)
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -219,6 +245,10 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
+        # Trust Google to provide a verified email.
+        'EMAIL_AUTHENTICATION': True,
+        # Automatically connect the Google account to the existing user.
+        'EMAIL_AUTHENTICATION_AUTO_CONNECT': True,
     },
     'github': {
         'APP': {
@@ -226,6 +256,10 @@ SOCIALACCOUNT_PROVIDERS = {
             'secret': os.getenv('GITHUB_CLIENT_SECRET'),
         },
         'SCOPE': ['read:user', 'user:email'],
+        # Trust GitHub to provide a verified email.
+        'EMAIL_AUTHENTICATION': True,
+        # Automatically connect the GitHub account to the existing user.
+        'EMAIL_AUTHENTICATION_AUTO_CONNECT': True,
     }
 }
 
