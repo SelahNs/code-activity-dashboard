@@ -1,3 +1,7 @@
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework import generics, permissions
 from .models import UserProfile
@@ -76,3 +80,17 @@ class ResendVerificationLinkView(APIView):
             {"detail": "If an account with this email exists, a new verification link has been sent."},
             status=status.HTTP_200_OK
         )
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CsrfTokenView(APIView):
+    """
+    A view to provide a CSRF token to the frontend.
+    The `@ensure_csrf_cookie` decorator forces Django to set the csrftoken cookie.
+    """
+    permission_classes = [AllowAny]  # No authentication needed
+
+    def get(self, request, *args, **kwargs):
+        # We also send the token in the response for convenience,
+        # although the frontend can also read it from the cookie.
+        return JsonResponse({'csrfToken': get_token(request)})
