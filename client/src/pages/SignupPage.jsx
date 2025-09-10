@@ -121,6 +121,11 @@ export default function SignupPage() {
             showNotification("Account created! Please check your email to verify.", "success");
 
         } catch (error) {
+            if (error.status === 401) {
+                setIsSubmitted(true);
+                showNotification("Account created! Please check your email to verify.", "success");
+                return;
+            }
             const errorData = error.data || {};
             const newErrors = {};
             if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {

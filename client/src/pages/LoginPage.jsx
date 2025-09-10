@@ -102,22 +102,33 @@ export default function LoginPage() {
             const errorData = error.data || {};
             const newErrors = {};
 
-            if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {
+
+            if (error.status === 400 && errorData) {
+                // Case 1: Handle general, non-field errors (like "wrong password")
+                if (errorData.non_field_errors) {
+                    newErrors._general = { _errors: errorData.non_field_errors };
+                }
+
+                // Case 2: Handle specific field validation errors (e.g., "invalid email format")
+                // This part of your original code was good, let's keep it.
                 if (errorData.errors && Array.isArray(errorData.errors)) {
                     for (const err of errorData.errors) {
                         newErrors[err.param] = { _errors: [err.message] };
                     }
                 } else {
                     for (const key in errorData) {
-                        if (Array.isArray(errorData[key])) {
+                        if (key !== 'non_field_errors' && Array.isArray(errorData[key])) {
                             newErrors[key] = { _errors: errorData[key] };
                         }
                     }
                 }
+
                 setFormErrors(newErrors);
                 setShakeButton(p => p + 1);
+
             } else {
-                showNotification(errorData.detail || 'An unknown error occurred.', 'error');
+                // This handles server errors (500) or network issues
+                showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
             }
         } finally {
             setSubmitStatus('idle');
@@ -188,12 +199,15 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
-                        <button type="submit" disabled={submitStatus === 'loading'}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                            {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
-                        </button>
-                    </motion.div>
+                    <motion.button
+                        key={shakeButton}
+                        animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}
+                        type="submit"
+                        disabled={submitStatus === 'loading'}
+                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
+                    </motion.button>
                 </form>
 
                 <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
