@@ -20,6 +20,7 @@ class UserProfileDetail(generics.RetrieveUpdateAPIView):
     """
     API endpoint that allows a user's profile to be viewed or edited.
     """
+    queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
