@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth Backend Test</title>
+    <style>
+        body { font-family: sans-serif; display: grid; place-content: center; text-align: center; height: 100vh; margin: 0; }
+        form { margin-bottom: 1rem; }
+        button { font-size: 1.5rem; padding: 1rem 2rem; background-color: #24292e; color: white; border-radius: 6px; border: none; cursor: pointer; }
+        button:disabled { background-color: #959da5; cursor: not-allowed; }
+        .status { margin-top: 1rem; color: #6a737d; }
+    </style>
+</head>
+<body>
+
+    <h1>Test Your Django Backend Login</h1>
+    <div id="status" class="status">Fetching CSRF token...</div>
+
+    <!-- GitHub Login Form -->
+    <form action="http://localhost:8000/_allauth/browser/v1/auth/provider/redirect" method="POST">
+        <input type="hidden" name="provider" value="github" />
+        <input type="hidden" name="process" value="login" />
+        <input type="hidden" name="callback_url" value="http://127.0.0.1:3000/callback.html" />
+        <!-- The CSRF token input will be injected here by JavaScript -->
+        <button type="submit" disabled>Log in with GitHub</button>
+    </form>
+    
+    <!-- Google Login Form -->
+    <form action="http://localhost:8000/_allauth/browser/v1/auth/provider/redirect" method="POST">
+        <input type="hidden" name="provider" value="google" />
+        <input type="hidden" name="process" value="login" />
+        <input type="hidden" name="callback_url" value="http://127.0.0.1:3000/callback.html" />
+        <!-- The CSRF token input will be injected here by JavaScript -->
+        <button type="submit" disabled>Log in with Google</button>
+    </form>
+
+<script>
+    // This script runs when the page is fully loaded.
+    window.addEventListener('DOMContentLoaded', () => {
+        const statusDiv = document.getElementById('status');
+        const submitButtons = document.querySelectorAll('button[type="submit"]');
+
+        // This function fetches the CSRF token from your Django backend.
+        const fetchCsrfToken = async () => {
+            try {
+                // IMPORTANT: `credentials: 'include'` tells the browser to send cookies
+                // (like the csrftoken cookie it will receive) with cross-origin requests.
+                const response = await fetch('http://localhost:8000/api/csrf-token/', {
+                    method: 'GET',
+                    credentials: 'include', 
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch CSRF token. Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const csrfToken = data.csrfToken;
+
+                // Find all forms on the page
+                const forms = document.querySelectorAll('form');
+                
+                forms.forEach(form => {
+                    // Create the hidden input field that Django expects
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken'; // This name is required by Django
+                    csrfInput.value = csrfToken;
+
+                    // Add the hidden input to the form
+                    form.appendChild(csrfInput);
+                });
+
+                // Update UI to show that everything is ready
+                statusDiv.textContent = 'Ready to log in.';
+                submitButtons.forEach(button => button.disabled = false); // Enable the buttons
+
+            } catch (error) {
+                console.error('CSRF Token Error:', error);
+                statusDiv.textContent = 'Error: Could not get security token from backend. See console.';
+                statusDiv.style.color = 'red';
+            }
+        };
+
+        // Call the function to start the process.
+        fetchCsrfToken();
+    });
+</script>
+
+</body>
+</html>
