@@ -1,6 +1,6 @@
 // src/lib/api.js
 
-const BASE_URL = 'http://127.0.0.1:8000'; // Your backend server address
+const BASE_URL = 'http://localhost:8000'; // Your backend server address
 
 // src/lib/api.js
 
@@ -134,4 +134,77 @@ export const authApiFetch = async (endpoint, options = {}) => {
     const data = await response.json();
     if (!response.ok) throw { status: response.status, data };
     return data;
+};
+
+
+
+
+/**
+ * A helper function to handle API responses and errors consistently.
+ * @param {Response} response - The raw response from the fetch API.
+ * @returns {Promise<any>} - A promise that resolves with the JSON data.
+ * @throws {Error} - Throws a custom error object on failure.
+ */
+const handleApiResponse = async (response) => {
+    let data;
+    try {
+        data = await response.json();
+    } catch (e) {
+        // Handle cases where the server sends non-JSON (like the Django 403 HTML page)
+        data = { detail: `The server sent a response that was not valid JSON. Status: ${response.status}` };
+    }
+
+    if (!response.ok) {
+        const error = new Error(data.detail || 'An API error occurred');
+        error.data = data;
+        error.status = response.status;
+        throw error;
+    }
+    return data;
+};
+
+/**
+ * Fetches a CSRF token from the backend.
+ * This is the first step in any CSRF-protected flow.
+ * It ensures the browser receives and stores the `csrftoken` cookie.
+ * @returns {Promise<string>} A promise that resolves with the CSRF token string.
+ */
+export const fetchCsrfToken = async () => {
+    const response = await fetch(`${BASE_URL}/api/csrf-token/`, {
+        // CRITICAL: This allows the browser to receive and store the cookie
+        // from the cross-origin backend server.
+        credentials: 'include',
+    });
+    const data = await handleApiResponse(response);
+    return data.csrfToken;
+};
+
+
+
+/**
+ * Posts data to a CSRF-protected authentication endpoint.
+ * It correctly formats the data as 'application/x-www-form-urlencoded' and
+ * ensures the CSRF cookie is sent with the request.
+ *
+ * @param {string} endpoint - The endpoint path (e.g., '/_allauth/browser/v1/auth/login').
+ * @param {object} data - A plain JavaScript object with the form data (e.g., { email, password }).
+ * @param {string} csrfToken - The CSRF token obtained from fetchCsrfToken.
+ * @returns {Promise<any>} A promise that resolves with the JSON response from the server.
+ */
+export const postToAuthEndpoint = async (endpoint, data, csrfToken) => {
+    // MODIFIED: We are now sending JSON, not URLSearchParams.
+    const payload = JSON.stringify(data);
+
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            // The CSRF Token header is correct.
+            'X-CSRFToken': csrfToken,
+            // MODIFIED: The Content-Type must be application/json.
+            'Content-Type': 'application/json',
+        },
+        body: payload,
+    });
+    return handleApiResponse(response);
 };

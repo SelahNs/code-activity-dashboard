@@ -1,10 +1,11 @@
 // src/pages/LoginPage.jsx
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
-import { apiFetch } from '../lib/api';
+// Correctly import the necessary API helper functions
+import { fetchCsrfToken, postToAuthEndpoint } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
@@ -22,10 +23,35 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [shakeButton, setShakeButton] = useState(0);
-    const [rememberMe, setRememberMe] = useState(true); // State for the "Remember Me" checkbox
+    const [rememberMe, setRememberMe] = useState(true);
+    const [csrfToken, setCsrfToken] = useState(null); // State to hold the CSRF token
+    const csrfFetched = useRef(false); // Ref to prevent double-fetching in StrictMode
+
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
     const showNotification = useNotificationStore((state) => state.showNotification);
+
+    // Fetch CSRF token once on component mount
+    useEffect(() => {
+        // Prevent the effect from running twice in development with React StrictMode
+        if (csrfFetched.current) {
+            return;
+        }
+        csrfFetched.current = true;
+
+        const getCsrfToken = async () => {
+            try {
+                const token = await fetchCsrfToken();
+                setCsrfToken(token);
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error);
+                showNotification('Could not initialize login form. Please refresh the page.', 'error');
+            }
+        };
+
+        getCsrfToken();
+    }, [showNotification]);
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -69,32 +95,39 @@ export default function LoginPage() {
             return;
         }
 
+        // Prevent submission if the CSRF token hasn't been fetched yet
+        if (!csrfToken) {
+            showNotification('Form is not ready, please wait a moment.', 'error');
+            return;
+        }
+
         setSubmitStatus('loading');
         try {
-            const { identifier, password } = result.data;
-
-            // A simple regex to check if the identifier contains an '@' symbol.
-            const isEmail = /@/.test(identifier);
-
-            // Build the payload dynamically
+            // Build the payload dynamically based on whether the identifier is an email or username
             const payload = {
                 password: result.data.password,
             };
-
             if (result.data.identifier.includes('@')) {
                 payload.email = result.data.identifier;
-
             } else {
                 payload.username = result.data.identifier;
             }
 
-            const response = await apiFetch('/_allauth/app/v1/auth/login', {
-                method: 'POST',
-                body: JSON.stringify(payload),
-            });
+            // Use the dedicated 'postToAuthEndpoint' function which handles CSRF
+            // Note: Using the '/_allauth/browser/v1/...' endpoint for CSRF-protected browser flows.
+            const response = await postToAuthEndpoint(
+                '/_allauth/browser/v1/auth/login',
+                payload,
+                csrfToken
+            );
 
-            // On successful login, pass the API response and the 'rememberMe' state to the auth store
-            login(response, rememberMe);
+            // On successful login, the response contains JWTs.
+            // Pass the API response and 'rememberMe' state to the auth store.
+            login({
+                user: response.user,
+                access_token: response.access,
+                refresh_token: response.refresh
+            }, rememberMe);
 
             navigate('/');
 
@@ -102,33 +135,20 @@ export default function LoginPage() {
             const errorData = error.data || {};
             const newErrors = {};
 
-
             if (error.status === 400 && errorData) {
-                // Case 1: Handle general, non-field errors (like "wrong password")
-                if (errorData.non_field_errors) {
-                    newErrors._general = { _errors: errorData.non_field_errors };
-                }
-
-                // Case 2: Handle specific field validation errors (e.g., "invalid email format")
-                // This part of your original code was good, let's keep it.
-                if (errorData.errors && Array.isArray(errorData.errors)) {
-                    for (const err of errorData.errors) {
-                        newErrors[err.param] = { _errors: [err.message] };
-                    }
+                if (errorData.detail) { // allauth often puts general errors in 'detail'
+                    newErrors._general = { _errors: [errorData.detail] };
                 } else {
                     for (const key in errorData) {
-                        if (key !== 'non_field_errors' && Array.isArray(errorData[key])) {
+                        if (Array.isArray(errorData[key])) {
                             newErrors[key] = { _errors: errorData[key] };
                         }
                     }
                 }
-
                 setFormErrors(newErrors);
                 setShakeButton(p => p + 1);
-
             } else {
-                // This handles server errors (500) or network issues
-                showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
+                showNotification(error.message || 'An unknown error occurred.', 'error');
             }
         } finally {
             setSubmitStatus('idle');
@@ -203,7 +223,8 @@ export default function LoginPage() {
                         key={shakeButton}
                         animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}
                         type="submit"
-                        disabled={submitStatus === 'loading'}
+                        // Disable the button if the form is submitting OR if the CSRF token is not yet available
+                        disabled={submitStatus === 'loading' || !csrfToken}
                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
