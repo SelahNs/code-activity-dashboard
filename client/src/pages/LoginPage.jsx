@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
 // Correctly import the necessary API helper functions
-import { fetchCsrfToken, postToAuthEndpoint } from '../lib/api';
+import { fetchCsrfToken, postToAuthEndpoint, sessionApiFetch } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
@@ -115,28 +115,58 @@ export default function LoginPage() {
 
             // Use the dedicated 'postToAuthEndpoint' function which handles CSRF
             // Note: Using the '/_allauth/browser/v1/...' endpoint for CSRF-protected browser flows.
-            const response = await postToAuthEndpoint(
+
+            // --- STEP 1: Perform the secure, session-based login ---
+            const SessionLoginResponse = await postToAuthEndpoint(
                 '/_allauth/browser/v1/auth/login',
                 payload,
                 csrfToken
             );
 
+            // --- STEP 2: Exchange the session for a JWT ---
+            const jwtResponse = await sessionApiFetch('/api/session-to-jwt/');
+
             // On successful login, the response contains JWTs.
             // Pass the API response and 'rememberMe' state to the auth store.
+
+            // --- STEP 3: Store the JWTs and proceed ---
+            // Now we call the original JWT login action from useAuthStore
             login({
-                user: response.user,
-                access_token: response.access,
-                refresh_token: response.refresh
+                user: jwtResponse.user,
+                access_token: jwtResponse.access_token,
+                refresh_token: jwtResponse.refresh_token,
             }, rememberMe);
 
             navigate('/');
 
         } catch (error) {
+            console.error("The login handshake failed at some point:", error);
+
+            // --- THIS IS THE ROBUST CLEANUP LOGIC ---
+            // Regardless of what failed, we attempt to log out to clear any
+            // potentially stale session cookie that would block the next login attempt.
+            try {
+                // We must have a CSRF token to even attempt this.
+                if (csrfToken) {
+                    console.log("Attempting a cleanup logout to clear any stale session...");
+                    // The payload for logout is an empty object.
+                    await postToAuthEndpoint('/_allauth/browser/v1/auth/logout', {}, csrfToken);
+                    console.log("Cleanup logout call completed successfully.");
+                }
+            } catch (logoutError) {
+                // It's perfectly fine if this cleanup call fails (e.g., the session
+                // was never created, or the network is down). We don't need to
+                // show an error to the user for this background task.
+                console.warn("Cleanup logout call failed, but this is often expected.", logoutError);
+            }
+
+            // --- NOW, HANDLE THE USER-FACING ERROR FROM THE ORIGINAL FAILURE ---
             const errorData = error.data || {};
             const newErrors = {};
 
             if (error.status === 400 && errorData) {
-                if (errorData.detail) { // allauth often puts general errors in 'detail'
+                // This handles validation errors like "wrong password".
+                if (errorData.detail) {
                     newErrors._general = { _errors: [errorData.detail] };
                 } else {
                     for (const key in errorData) {
@@ -148,7 +178,9 @@ export default function LoginPage() {
                 setFormErrors(newErrors);
                 setShakeButton(p => p + 1);
             } else {
-                showNotification(error.message || 'An unknown error occurred.', 'error');
+                // This handles other errors, like a network failure during the
+                // JWT exchange, or a 500 server error.
+                showNotification(error.message || 'An unknown error occurred. Please try again.', 'error');
             }
         } finally {
             setSubmitStatus('idle');

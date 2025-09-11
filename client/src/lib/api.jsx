@@ -208,3 +208,39 @@ export const postToAuthEndpoint = async (endpoint, data, csrfToken) => {
     });
     return handleApiResponse(response);
 };
+
+/**
+ * A simple client for making a session-authenticated request.
+ * It automatically includes cookies. Used for the session-to-JWT exchange.
+ */
+export const sessionApiFetch = async (endpoint, options = {}) => {
+    const config = {
+        method: 'POST', // This should be a POST request
+        ...options,
+        credentials: 'include', // This is the magic that sends the sessionid cookie
+        headers: {
+            'Content-Type': 'application/json',
+            // The CSRF token is needed for a POST request
+            'X-CSRFToken': getCookie('csrftoken'),
+            ...options.headers,
+        },
+    };
+    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    return handleApiResponse(response); // Reuse your existing handler
+};
+
+// Helper function to read a cookie, needed for the CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}

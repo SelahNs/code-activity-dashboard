@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -12,8 +13,60 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework import status
+from django.contrib.auth import logout
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 import os
-# Create your views here.
+
+
+# Helper function to generate tokens (good practice)
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh_token': str(refresh),
+        'access_token': str(refresh.access_token),
+    }
+
+
+class SessionToJWTView(APIView):
+    """
+    An endpoint to exchange a valid session ID for a JWT.
+    This is used to transition from a stateful login to a stateless session.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        tokens = get_tokens_for_user(user)
+
+        response_data = {
+            "user": {
+                "id": user.id,
+                "display": getattr(user, 'display', user.username),
+                "email": user.email,
+                "username": user.username
+            },
+            **tokens
+        }
+
+        response = Response(response_data, status=status.HTTP_200_OK)
+
+        # --- THIS IS THE ROBUST FIX ---
+        # We explicitly tell the browser to delete the cookie for the root path ('/'),
+        # which is Django's default for the sessionid. This ensures the delete
+        # command matches the set command.
+
+        # We also read the cookie name from settings for correctness.
+        session_cookie_name = settings.SESSION_COOKIE_NAME
+
+        print(
+            f"\n[DEBUG] Attempting to delete cookie '{session_cookie_name}' with Path='/'\n")
+        response.delete_cookie(session_cookie_name, path='/')
+
+        # Destroy the server-side session.
+        logout(request)
+
+        return response
 
 
 class UserProfileDetail(generics.RetrieveUpdateAPIView):
