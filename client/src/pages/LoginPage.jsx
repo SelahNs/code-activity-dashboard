@@ -1,11 +1,13 @@
-// src/pages/LoginPage.jsx
-
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
+<<<<<<< HEAD
 // Correctly import the necessary API helper functions
 import { fetchCsrfToken, postToAuthEndpoint, sessionApiFetch } from '../lib/api';
+=======
+import { fetchCsrfToken, postToAuthEndpoint } from '../lib/api'; // Our simplified helpers
+>>>>>>> c6b728c (feat: switch JWT auth to session auth)
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
@@ -23,22 +25,18 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [shakeButton, setShakeButton] = useState(0);
-    const [rememberMe, setRememberMe] = useState(true);
-    const [csrfToken, setCsrfToken] = useState(null); // State to hold the CSRF token
-    const csrfFetched = useRef(false); // Ref to prevent double-fetching in StrictMode
+    const [rememberMe, setRememberMe] = useState(true)
+    const [csrfToken, setCsrfToken] = useState(null);
+    const csrfFetched = useRef(false);
 
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
     const showNotification = useNotificationStore((state) => state.showNotification);
 
-    // Fetch CSRF token once on component mount
+    // This useEffect hook for fetching the initial CSRF token remains essential.
     useEffect(() => {
-        // Prevent the effect from running twice in development with React StrictMode
-        if (csrfFetched.current) {
-            return;
-        }
+        if (csrfFetched.current) return;
         csrfFetched.current = true;
-
         const getCsrfToken = async () => {
             try {
                 const token = await fetchCsrfToken();
@@ -48,7 +46,6 @@ export default function LoginPage() {
                 showNotification('Could not initialize login form. Please refresh the page.', 'error');
             }
         };
-
         getCsrfToken();
     }, [showNotification]);
 
@@ -56,32 +53,22 @@ export default function LoginPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prevState => ({ ...prevState, [name]: value }));
-        if (formErrors[name] || formErrors._general) {
-            setFormErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[name];
-                delete newErrors._general;
-                return newErrors;
-            });
-        }
+        setFormErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            delete newErrors._general;
+            return newErrors;
+        });
     };
 
     const handleBlur = (e) => {
         const { name } = e.target;
-        const newTouched = { ...touched, [name]: true };
-        setTouched(newTouched);
+        setTouched({ ...touched, [name]: true });
         const result = loginSchema.safeParse(formData);
-        if (result.success) {
-            setFormErrors({});
+        if (!result.success) {
+            setFormErrors(result.error.format());
         } else {
-            const formattedErrors = result.error.format();
-            const newVisibleErrors = {};
-            for (const key in newTouched) {
-                if (formattedErrors[key]) {
-                    newVisibleErrors[key] = formattedErrors[key];
-                }
-            }
-            setFormErrors(newVisibleErrors);
+            setFormErrors({});
         }
     };
 
@@ -94,8 +81,6 @@ export default function LoginPage() {
             setShakeButton(p => p + 1);
             return;
         }
-
-        // Prevent submission if the CSRF token hasn't been fetched yet
         if (!csrfToken) {
             showNotification('Form is not ready, please wait a moment.', 'error');
             return;
@@ -103,84 +88,53 @@ export default function LoginPage() {
 
         setSubmitStatus('loading');
         try {
-            // Build the payload dynamically based on whether the identifier is an email or username
+
             const payload = {
                 password: result.data.password,
             };
+
             if (result.data.identifier.includes('@')) {
                 payload.email = result.data.identifier;
             } else {
                 payload.username = result.data.identifier;
             }
 
+<<<<<<< HEAD
             // Use the dedicated 'postToAuthEndpoint' function which handles CSRF
             // Note: Using the '/_allauth/browser/v1/...' endpoint for CSRF-protected browser flows.
 
             // --- STEP 1: Perform the secure, session-based login ---
             const SessionLoginResponse = await postToAuthEndpoint(
+=======
+            // --- SINGLE, SIMPLE LOGIN STEP ---
+            const response = await postToAuthEndpoint(
+>>>>>>> c6b728c (feat: switch JWT auth to session auth)
                 '/_allauth/browser/v1/auth/login',
                 payload,
                 csrfToken
             );
 
-            // --- STEP 2: Exchange the session for a JWT ---
-            const jwtResponse = await sessionApiFetch('/api/session-to-jwt/');
-
-            // On successful login, the response contains JWTs.
-            // Pass the API response and 'rememberMe' state to the auth store.
-
-            // --- STEP 3: Store the JWTs and proceed ---
-            // Now we call the original JWT login action from useAuthStore
-            login({
-                user: jwtResponse.user,
-                access_token: jwtResponse.access_token,
-                refresh_token: jwtResponse.refresh_token,
-            }, rememberMe);
-
+            // On success, the session cookie is set. We update our state with the user data.
+            login(response.data.user);
             navigate('/');
 
         } catch (error) {
-            console.error("The login handshake failed at some point:", error);
-
-            // --- THIS IS THE ROBUST CLEANUP LOGIC ---
-            // Regardless of what failed, we attempt to log out to clear any
-            // potentially stale session cookie that would block the next login attempt.
-            try {
-                // We must have a CSRF token to even attempt this.
-                if (csrfToken) {
-                    console.log("Attempting a cleanup logout to clear any stale session...");
-                    // The payload for logout is an empty object.
-                    await postToAuthEndpoint('/_allauth/browser/v1/auth/logout', {}, csrfToken);
-                    console.log("Cleanup logout call completed successfully.");
-                }
-            } catch (logoutError) {
-                // It's perfectly fine if this cleanup call fails (e.g., the session
-                // was never created, or the network is down). We don't need to
-                // show an error to the user for this background task.
-                console.warn("Cleanup logout call failed, but this is often expected.", logoutError);
-            }
-
-            // --- NOW, HANDLE THE USER-FACING ERROR FROM THE ORIGINAL FAILURE ---
-            const errorData = error.data || {};
-            const newErrors = {};
-
-            if (error.status === 400 && errorData) {
-                // This handles validation errors like "wrong password".
-                if (errorData.detail) {
-                    newErrors._general = { _errors: [errorData.detail] };
-                } else {
-                    for (const key in errorData) {
-                        if (Array.isArray(errorData[key])) {
-                            newErrors[key] = { _errors: errorData[key] };
-                        }
-                    }
-                }
-                setFormErrors(newErrors);
-                setShakeButton(p => p + 1);
-            } else {
-                // This handles other errors, like a network failure during the
-                // JWT exchange, or a 500 server error.
-                showNotification(error.message || 'An unknown error occurred. Please try again.', 'error');
+            // --- CLEAN, SCALABLE ERROR HANDLING ---
+            switch (error.status) {
+                case 400:
+                    // Handles "Wrong password" and other validation errors from the server.
+                    setFormErrors({ _general: { _errors: [error.data?.detail || "Invalid credentials."] } });
+                    setShakeButton(p => p + 1);
+                    break;
+                case 409:
+                    // Handles the "already logged in" conflict.
+                    showNotification("You are already logged in.", "info");
+                    navigate('/');
+                    break;
+                default:
+                    // Handles all other cases (network errors, server errors, etc.).
+                    showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
+                    break;
             }
         } finally {
             setSubmitStatus('idle');

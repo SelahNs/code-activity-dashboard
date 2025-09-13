@@ -1,10 +1,9 @@
-// src/pages/SignupPage.jsx
-
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signupSchema } from '../lib/validation';
-import { apiFetch } from '../lib/api';
+// Import our new, robust API helpers
+import { fetchCsrfToken, postToAuthEndpoint } from '../lib/api';
 import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
 import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
 import useNotificationStore from '../stores/useNotificationStore';
@@ -54,7 +53,26 @@ export default function SignupPage() {
     const [shakeButton, setShakeButton] = useState(0);
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [csrfToken, setCsrfToken] = useState(null);
+    const csrfFetched = useRef(false);
     const showNotification = useNotificationStore((state) => state.showNotification);
+
+    // This hook is still necessary to get the CSRF token for the POST request.
+    useEffect(() => {
+        if (csrfFetched.current) return;
+        csrfFetched.current = true;
+        const getCsrfToken = async () => {
+            try {
+                const token = await fetchCsrfToken();
+                setCsrfToken(token);
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error);
+                showNotification('Could not initialize signup form. Please refresh the page.', 'error');
+            }
+        };
+        getCsrfToken();
+    }, [showNotification]);
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -96,54 +114,78 @@ export default function SignupPage() {
             setShakeButton(s => s + 1);
             return;
         }
+        if (!csrfToken) {
+            showNotification('Form is not ready, please wait a moment.', 'error');
+            return;
+        }
 
         setSubmitStatus('loading');
         try {
-            // --- REFINEMENT 1: Conditionally add fullName to the payload ---
-            // This is a more robust way to handle an optional field.
+            // The payload needs to match what django-allauth expects.
+            // Note: 'fullName' might be a custom field. We'll send it, and your
+            // custom Signup form on the backend will handle it.
             const payload = {
                 email: result.data.email,
                 username: result.data.username,
                 password: result.data.password,
                 password2: result.data.confirmPassword,
+                fullName: result.data.fullName, // Adjust key if your backend form expects a different name
             };
 
-            if (result.data.fullName && result.data.fullName.trim() !== '') {
-                payload.fullName = result.data.fullName;
-            }
+            // --- SINGLE, SIMPLE SIGNUP STEP ---
+            // We use our helper to post to the correct 'browser' endpoint.
+            await postToAuthEndpoint(
+                '/_allauth/browser/v1/auth/signup',
+                payload,
+                csrfToken
+            );
 
-            await apiFetch('/_allauth/app/v1/auth/signup', {
-                method: 'POST',
-                body: JSON.stringify(payload),
-            });
-
+            // --- SUCCESS CASE ---
+            // If the request succeeds, we show the "Check your email" message.
             setIsSubmitted(true);
             showNotification("Account created! Please check your email to verify.", "success");
 
         } catch (error) {
-            if (error.status === 401) {
-                setIsSubmitted(true);
-                showNotification("Account created! Please check your email to verify.", "success");
-                return;
-            }
-            const errorData = error.data || {};
-            const newErrors = {};
-            if (error.status === 400 && (errorData.errors || Object.keys(errorData).length > 0)) {
-                if (errorData.errors && Array.isArray(errorData.errors)) {
-                    for (const err of errorData.errors) {
-                        newErrors[err.param] = { _errors: [err.message] };
+            // --- CLEAN, SCALABLE ERROR HANDLING ---
+            switch (error.status) {
+                case 400:
+                    const newErrors = {};
+                    if (error.data.errors && Array.isArray(error.data.errors)) {
+                        error.data.errors.forEach(err => {
+                            // `err.param` is the field name (e.g., "username")
+                            // `err.message` is the error text
+                            newErrors[err.param] = { _errors: [err.message] };
+                        });
+                    } else if (error.data.detail) {
+                        // Fallback for other kinds of 400 errors.
+                        newErrors._general = { _errors: [error.data.detail] };
+                    } else {
+                        // Final fallback.
+                        newErrors._general = { _errors: ["Please correct the errors below."] };
                     }
-                } else {
-                    for (const key in errorData) {
-                        if (Array.isArray(errorData[key])) {
-                            newErrors[key] = { _errors: errorData[key] };
-                        }
-                    }
-                }
-                setFormErrors(newErrors);
-                setShakeButton(p => p + 1);
-            } else {
-                showNotification(errorData.detail || 'An unknown error occurred.', 'error');
+                    setFormErrors(newErrors);
+                    setShakeButton(p => p + 1);
+                    break;
+
+                case 401:
+                    setIsSubmitted(true);
+                    showNotification("Account created! Please check your email to verify.", "success");
+                    return; // Exit the catch block, as this is not a true error.
+
+                case 403:
+                    // "Forbidden. For example, when signup is closed."
+                    showNotification("Sorry, new account signups are currently disabled.", "warning");
+                    break;
+
+                case 409:
+                    // "Conflict. For example, when signing up while user is logged in."
+                    showNotification("You are already logged in.", "info");
+                    break;
+
+                default:
+                    // This handles all other cases (network errors, server errors, etc.).
+                    showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
+                    break;
             }
         } finally {
             setSubmitStatus('idle');
