@@ -23,16 +23,14 @@ export const signupSchema = z.object({
 
 // --- Profile Schema (The Master Blueprint) ---
 export const profileSchema = z.object({
-    fullName: z.string().trim().min(2, { message: "Full name must be at least 2 characters." }),
+    full_name: z.string().trim().min(2, { message: "Full name must be at least 2 characters." }).optional(),
     username: z.string().trim().min(3, { message: "Username must be at least 3 characters." }),
     email: z.string().email(), // Not editable, so no validation message needed for user
     bio: z.string().max(300, { message: "Bio cannot exceed 300 characters." }).optional(),
     avatarId: z.string().optional(),
     avatarUrl: z.string().optional(),
-    isHireable: z.boolean(),
-    socialLinks: z.object({
-
-        github: z.string().trim().optional().or(z.literal(''))
+    is_hireable: z.boolean(),
+    github_url: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true; // Optional field
                 return githubUsernamePattern.test(val) || githubUrlPattern.test(val);
@@ -40,7 +38,7 @@ export const profileSchema = z.object({
                 message: "Invalid GitHub username or URL.",
             }),
 
-        linkedin: z.string().trim().optional().or(z.literal(''))
+    linkedin_url: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true;
                 // LinkedIn usernames are less strict, so we allow a wider pattern
@@ -50,7 +48,7 @@ export const profileSchema = z.object({
                 message: "Invalid LinkedIn username or URL.",
             }),
 
-        twitter: z.string().trim().optional().or(z.literal(''))
+    twitter_url: z.string().trim().optional().or(z.literal(''))
             .refine((val) => {
                 if (!val) return true;
                 const handlePattern = /^@?(\w){1,15}$/;
@@ -58,7 +56,6 @@ export const profileSchema = z.object({
             }, {
                 message: "Invalid Twitter handle or URL.",
             }),
-    }),
 });
 
 export const loginSchema = z.object({

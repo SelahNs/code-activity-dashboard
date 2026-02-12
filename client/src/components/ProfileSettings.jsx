@@ -1,317 +1,189 @@
 // src/components/ProfileSettings.jsx
 
-import { avatarOptions } from "../data/avatar";
+import { useRef, useState } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { getAvatarComponent, avatarOptions } from "../data/avatar";
 import { AiFillGithub, AiFillLinkedin, AiFillTwitterCircle } from 'react-icons/ai';
-import { FiPlus } from 'react-icons/fi'
-import { useRef } from "react";
 import UserIcon from "../icons/UserIcon";
-import { getAvatarComponent } from "../data/avatar";
-
+import CameraIcon from "../icons/CameraIcon";
+// Re-using your excellent FormError component for consistency
+import { FormError } from '../pages/SignupPage';
 
 export default function ProfileSettings({
     touched,
     handleBlur,
     errors,
-    formData,
+    formData,// this stands for the draftproflie varaible in the settgins page
     handleChange,
-    handleSubmit,
+    handleSubmit, // Rename the handleSubmit from props
     saveStatus,
     onCancel,
     setFormData,
-    handleSocialChange
+    handleUserChange,
+    handleSocialChange,
+    setAvatarFile
 }) {
-
-    const fileInputRef = useRef(null)
+    const fileInputRef = useRef(null);
     const BIO_MAX_LENGTH = 300;
-    const SelectedAvatar = getAvatarComponent(formData.avatarId);
+    // const SelectedAvatar = getAvatarComponent(formData.avatarId);
+    console.log("Rendering ProfileSettings with formData:", formData);
+    const LibraryAvatar = formData.avatar_id ? getAvatarComponent(formData.avatar_id) : null;
+
+    // State to hold the actual file object for upload
+
 
     function handleFileChange(e) {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => { // Use onloadend for more robustness
-                setFormData(prevState => ({
-                    ...prevState,
-                    avatarUrl: reader.result,
-                    avatarId: ''
-                }));
-            };
-            reader.readAsDataURL(file);
+            setAvatarFile(file); // Store the actual file for submission
+            const previewUrl = URL.createObjectURL(file); // Create a temporary URL for preview
+            setFormData(prevState => ({ ...prevState, previewUrl: previewUrl, avatar_id: '', avatar: null }));
         }
     }
 
+
+
+    // In ProfileSettings.jsx, replace the entire `return` statement with this:
+
+
+    // In ProfileSettings.jsx, replace the entire `return` statement with this:
+
     return (
-        <section>
-            {/* Header */}
-            <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Profile</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">This is how others will see you on the site.</p>
+        <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            {/* --- STANDARD PAGE HEADER --- */}
+            <div className="text-left mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Public Profile</h2>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">This information will be displayed publicly on your profile.</p>
             </div>
 
-            {/* Card */}
-            <div className="mt-6 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm bg-white dark:bg-slate-800">
-                <form onSubmit={handleSubmit} noValidate>
-                    {/* Form Body */}
-                    <div className="p-6 grid grid-cols-1 gap-y-6">
+            {/* --- UNIFIED FORM CARD --- */}
+            <form onSubmit={handleSubmit} noValidate className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden">
 
-                        <div className="grid lg:col-span-2 grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Full Name
-                                </label>
-                                <div className="mt-1">
-                                    <input
-                                        onBlur={handleBlur}
-                                        onChange={handleChange}
-                                        type="text"
-                                        name="fullName"
-                                        value={formData.fullName}
-                                        id="fullName"
-                                        className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        placeholder="Your Name" // ADDED PLACEHOLDER
-                                    />
-                                </div>
-                                {errors?.fullName?._errors[0] && touched?.fullName && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.fullName._errors[0]}</p>
-                                )}
-                            </div>
+                {/* --- MAIN CONTENT AREA (WITH PADDING) --- */}
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-10">
 
-                            <div>
-                                <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Username
-                                </label>
-                                <div className="mt-1">
-                                    <input
-                                        onBlur={handleBlur}
-                                        onChange={handleChange}
-                                        type="text"
-                                        name="username"
-                                        value={formData.username}
-                                        id="username"
-                                        className="block text-slate-900 dark:text-slate-100 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        placeholder="your-username" // ADDED PLACEHOLDER
-                                    />
-                                </div>
-                                {errors?.username?._errors[0] && touched?.username && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.username._errors[0]}</p>
-                                )}
-                            </div>
-                        </div>
+                        {/* --- LEFT COLUMN: PHOTO --- */}
+                        <div className="md:col-span-1">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Your Photo</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Click the image below to upload a new photo.</p>
 
-                        <div className="lg:col-span-2">
-                            <label htmlFor="bio" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Bio
-                            </label>
-                            <div className="mt-1">
-                                <textarea
-                                    onBlur={handleBlur}
-                                    onChange={handleChange}
-                                    id="bio"
-                                    name="bio"
-                                    rows={3}
-                                    maxLength={BIO_MAX_LENGTH}
-                                    value={formData.bio}
-                                    className="block w-full text-slate-900 dark:text-slate-100 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                    placeholder="A short bio about yourself..." // ADDED PLACEHOLDER
-                                />
-                            </div>
-                            <div className="flex justify-between items-center mt-1">
-                                {errors?.bio?._errors[0] && touched?.bio && (
-                                    <p className="text-sm text-red-600">{errors.bio._errors[0]}</p>
-                                )}
-                                <p className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
-                                    {formData.bio.length} / {BIO_MAX_LENGTH}
-                                </p>
-                            </div>
-                        </div>
-
-
-                        <div className="lg:col-span-2"> {/* This is the main grid wrapper */}
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Photo
-                            </label>
-                            <div className="mt-2 flex items-center gap-6">
-
-                                {/* The Smart Preview */}
-                                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
-                                    {
-                                        formData.avatarUrl ? (
-                                            <img src={formData.avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
-                                        ) : SelectedAvatar ? (
-                                            <SelectedAvatar className="w-12 h-12 text-slate-500" />
+                            <div className="mt-6 flex flex-col items-center text-center gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="relative group rounded-full focus:outline-none focus:ring-2 focus:ring-offset-4 focus:ring-indigo-500 dark:focus:ring-offset-gray-900"
+                                    title="Upload new photo"
+                                >
+                                    <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden ring-4 ring-white dark:ring-gray-900 shadow-lg group-hover:ring-indigo-500 transition-all duration-300">
+                                        {formData?.previewUrl ? (
+                                            <img src={formData.previewUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                        ) : formData?.avatar ? (
+                                            <img src={formData.avatar} alt="User Avatar" className="w-full h-full object-cover" />
+                                        ) : LibraryAvatar ? (
+                                            <LibraryAvatar className="w-20 h-20 text-gray-500" />
                                         ) : (
-                                            <UserIcon className="w-12 h-12 text-slate-400" />
-                                        )
-                                    }
-                                </div>
-
-                                {/* The Action Buttons */}
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current.click()}
-                                        className="rounded-md py-2 px-3 text-sm font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
-                                    >
-                                        Upload
-                                    </button>
-                                    <input
-                                        onChange={handleFileChange}
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="sr-only"
-                                        accept="image/png, image/jpeg" // Good practice to specify accepted file types
-                                    />
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prevState => ({ ...prevState, avatarId: '', avatarUrl: '' }))}
-                                        className="rounded-md py-2 px-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
+                                            <UserIcon className="w-20 h-20 text-gray-400" />
+                                        )}
+                                    </div>
+                                    {/* --- HOVER OVERLAY --- */}
+                                    <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all duration-300">
+                                        <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300" /* ... camera icon svg ... */>
+                                            <CameraIcon />
+                                        </svg>
+                                    </div>
+                                </button>
+                                {/* --- HIDDEN FILE INPUT --- */}
+                                <input onChange={handleFileChange} type="file" ref={fileInputRef} className="sr-only" accept="image/png, image/jpeg, image/webp" />
                             </div>
-
-                            {/* The Avatar Picker List (now separate) */}
-                            <div className="mt-4">
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Or choose from our library:</p>
-                                <div className="flex flex-wrap mt-2 gap-2">
+                            <div className="mt-6">
+                                <p className="text-xs text-center text-gray-500 dark:text-gray-400">Or choose an avatar</p>
+                                <div className="flex flex-wrap justify-center mt-3 gap-3">
                                     {avatarOptions.map(({ id, Component }) => (
-                                        <button
-                                            onClick={() => setFormData(prevState => ({ ...prevState, avatarId: id, avatarUrl: '' }))}
-                                            type='button'
-                                            key={id}
-                                            aria-label={`Choose avatar ${id}`}
-                                            className={`rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                    ${formData.avatarId === id ? 'bg-blue-100 dark:bg-blue-900' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
-                                        >
-                                            <Component
-                                                className={`w-8 h-8 ${formData.avatarId === id ? 'text-blue-600' : 'text-slate-500'}`}
-                                            />
+                                        <button type="button" key={id} onClick={() => { setFormData(prevState => ({ ...prevState, avatar_id: id, previewUrl: null, avatar: null })); setAvatarFile(null); fileInputRef.current.value = null; }} className={`rounded-full p-3 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-900 ${formData.avatar_id === id ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                                            <Component className={`w-6 h-6 ${formData.avatar_id === id ? '' : 'text-gray-500'}`} />
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            {/* Label and Description */}
-                            <div className="sm:col-span-2">
-                                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Available for work</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Let others know you are open to new opportunities.</p>
+                        {/* --- RIGHT COLUMN: ALL OTHER FIELDS --- */}
+                        <div className="md:col-span-2 space-y-6">
+                            <div>
+                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                                <input id="fullName" name="full_name" type="text" value={formData?.user?.full_name || ''} onChange={handleUserChange} onBlur={handleBlur} placeholder="e.g., Jane Doe"
+                                    className="mt-1 block w-full text-gray-900 dark:text-gray-100 rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 dark:focus:ring-indigo-500" />
+                                <AnimatePresence>
+                                    {errors?.full_name?._errors[0] && touched?.full_name && <FormError message={errors.full_name._errors[0]} />}
+                                </AnimatePresence>
                             </div>
-
-                            {/* Main container for the interactive part */}
-                            <div className="sm:justify-self-end flex items-center">
-                                {/* The ON/OFF text */}
-                                <span className={`mr-3 text-sm font-medium transition-colors ${formData.isHireable ? 'text-blue-600' : 'text-slate-400'}`}>
-                                    {formData.isHireable ? 'ON' : 'OFF'}
-                                </span>
-
-                                {/* 
-          THIS IS THE KEY:
-          A dedicated, relative container for the visual switch.
-          The label now wraps this, ensuring clicks work.
-        */}
-                                <label htmlFor="isHireable" className="relative w-11 h-6 cursor-pointer">
-                                    {/* The hidden checkbox is inside, as a peer */}
-                                    <input
-                                        id="isHireable"
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        name='isHireable'
-                                        checked={formData.isHireable}
-                                        onChange={handleChange}
-                                    />
-
-                                    {/* The track is a sibling of the peer */}
-                                    <div className="w-full h-full bg-gray-200 rounded-full dark:bg-gray-700 transition-colors peer-checked:bg-blue-600"></div>
-
-                                    {/* 
-              The knob is a sibling of the peer.
-              It is positioned absolutely relative to the <label>, which is now a perfect w-11 h-6 box.
-            */}
-                                    <div className="absolute top-0.5 left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform peer-checked:translate-x-full"></div>
-                                </label>
+                            <div>
+                                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                                <textarea id="bio" name="bio" rows={4} maxLength={BIO_MAX_LENGTH} value={formData.bio || ''} onChange={handleChange} onBlur={handleBlur} placeholder="A short bio about yourself..."
+                                    className="mt-1 block w-full text-gray-900 dark:text-gray-100 rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 dark:focus:ring-indigo-500" />
+                                <div className="flex justify-between items-center mt-1">
+                                    <AnimatePresence>
+                                        {errors?.bio?._errors[0] && touched?.bio && <FormError message={errors.bio._errors[0]} />}
+                                    </AnimatePresence>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{formData?.bio?.length || 0} / {BIO_MAX_LENGTH}</p>
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Social Links
-                            </label>
-                            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
-                                {/* Simplified and Corrected Social Link Structure */}
-                                <div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                            <AiFillGithub className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input name='github' type="text" value={formData.socialLinks.github} onChange={handleSocialChange} onBlur={handleBlur}
-                                            placeholder="https://github.com/..."
-                                            className="block w-full pl-10 text-slate-900 dark:text-slate-100 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    {errors?.socialLinks?.github?._errors[0] && touched?.socialLinks?.github && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.socialLinks.github._errors[0]}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                            <AiFillLinkedin className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input name='linkedin' type="text" value={formData.socialLinks.linkedin} onChange={handleSocialChange} onBlur={handleBlur}
-                                            placeholder="https://linkedin.com/in/..."
-                                            className="block w-full pl-10 text-slate-900 dark:text-slate-100 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    {errors?.socialLinks?.linkedin?._errors[0] && touched?.socialLinks?.linkedin && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.socialLinks.linkedin._errors[0]}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                            <AiFillTwitterCircle className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input name='twitter' type="text" value={formData.socialLinks.twitter} onChange={handleSocialChange} onBlur={handleBlur}
-                                            placeholder="https://twitter.com/..."
-                                            className="block w-full pl-10 text-slate-900 dark:text-slate-100 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    {errors?.socialLinks?.twitter?._errors[0] && touched?.socialLinks?.twitter && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.socialLinks.twitter._errors[0]}</p>
-                                    )}
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Social Links</h3>
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                                    {['github', 'linkedin', 'twitter'].map((social) => {
+                                        const Icon = { github: AiFillGithub, linkedin: AiFillLinkedin, twitter: AiFillTwitterCircle }[social];
+                                        const fieldName = `${social}_url`;
+                                        return (
+                                            <div key={social} className="relative">
+                                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                    <Icon className="h-5 w-5 text-gray-400" />
+                                                </div>
+                                                <input name={fieldName} type="text" value={formData?.[fieldName] || ''} onChange={handleChange} onBlur={handleBlur} placeholder={`https://${social}.com/...`}
+                                                    className="block w-full pl-10 text-gray-900 dark:text-gray-100 rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 dark:focus:ring-indigo-500" />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Footer with Error Message */}
-                    <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 flex items-center justify-end gap-3 rounded-b-lg">
-                        {saveStatus === 'error' && <p className="text-sm text-red-600 mr-auto">Please correct the errors and try again.</p>}
-                        <button
-                            type="button"
-                            className="rounded-md py-2 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                            onClick={onCancel}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className={`inline-flex items-center justify-center rounded-md border border-transparent py-2 px-4 text-sm font-medium text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
-                ${saveStatus === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} 
-                transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
-                            disabled={saveStatus === 'saving' || saveStatus === 'success'}
-                        >
-                            {saveStatus === 'error' ? 'Save Changes' :
-                                saveStatus === 'saving' ? 'Saving...' :
-                                    saveStatus === 'success' ? 'Saved!' : 'Save Changes'}
+                {/* --- CARD FOOTER: ACTIONS & WORK STATUS --- */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 px-8 py-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Available for work</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Let recruiters know you're open to opportunities.</p>
+                        </div>
+                        <label htmlFor="is_hireable" className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="is_hireable" name="is_hireable" className="sr-only peer" checked={formData.is_hireable || false} onChange={handleChange} />
+                            <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-4">
+                        <AnimatePresence>
+                            {saveStatus === 'error' && <p className="text-sm text-red-600 mr-auto">Please correct the errors above.</p>}
+                        </AnimatePresence>
+                        <button type="button" onClick={onCancel} className="rounded-lg py-2 px-4 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+                        <button type="submit" disabled={saveStatus === 'saving' || saveStatus === 'success'} className="w-36 flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-indigo-500 transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+                            {saveStatus === 'saving' ? (
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : saveStatus === 'success' ? 'Saved!' : 'Save Changes'}
                         </button>
                     </div>
-                </form>
-            </div>
-        </section>
+                </div>
+            </form>
+        </motion.section>
     );
 }

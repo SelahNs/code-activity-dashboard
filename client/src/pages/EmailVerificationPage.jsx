@@ -9,6 +9,7 @@ import { FiLoader, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
 import { apiFetch } from '../lib/api';
+import { useCsrfToken } from '../hooks/useCsrfToken';
 
 const Spinner = () => (
     <motion.div
@@ -27,6 +28,7 @@ export default function EmailVerificationPage() {
     const navigate = useNavigate();
     const showNotification = useNotificationStore((state) => state.showNotification);
     const [errorMessage, setErrorMessage] = useState("The verification link is invalid, has expired, or was already used.");
+    const { csrfToken, isCsrfLoading } = useCsrfToken();
 
     // --- ESSENTIAL REFINEMENT 1: Get the 'login' function from our store ---
     const login = useAuthStore((state) => state.login);
@@ -37,13 +39,20 @@ export default function EmailVerificationPage() {
             return;
         }
 
+        if (isCsrfLoading) {
+            return;
+        }
+
         const verifyEmailKey = async () => {
             try {
+                const payload = new URLSearchParams();
+                payload.append('key', key);
+               payload.append('csrfmiddlewaretoken', csrfToken);
                 // 1. Use our robust, centralized apiFetch wrapper.
                 //    It handles the URL, headers, and body stringification.
-                const data = await apiFetch('/_allauth/app/v1/auth/email/verify', {
+                const data = await apiFetch('/_allauth/browser/v1/auth/email/verify', {
                     method: 'POST',
-                    body: JSON.stringify({ key }),
+                    body: payload,
                 });
 
                 // 2. The success logic for a 200 OK response.
@@ -72,11 +81,11 @@ export default function EmailVerificationPage() {
             }
         };
 
-        const timer = setTimeout(verifyEmailKey, 500);
+        const timer = setTimeout(verifyEmailKey, 200);
 
         return () => clearTimeout(timer);
         // --- ESSENTIAL REFINEMENT 1: Update the dependency array ---
-    }, [key, navigate, showNotification, login]);
+    }, [key, navigate, showNotification, login, csrfToken, isCsrfLoading]);
 
     const renderContent = () => {
         switch (verificationStatus) {

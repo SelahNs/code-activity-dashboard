@@ -14,6 +14,7 @@ import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
+import ShowcasePage from "./pages/ShowcasePage"
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 
 // Import your data source
@@ -22,6 +23,7 @@ import Toast from './components/Toast'
 import useNotificationStore from "./stores/useNotificationStore";
 import ResendVerificationPage from "./pages/ResendVerificationPage";
 import ResetPasswordPage from "./pages/resetPasswordPage";
+import useAuthStore from "./stores/useAuthStore";
 // This is now the main "brain" of your application
 export default function App() {
     // 1. All state now lives here, in the top-level component
@@ -50,47 +52,51 @@ export default function App() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [currentUser, setCurrentUser] = useState(() => {
-        const rememberedUser = localStorage.getItem('codedash_user');
-        if (rememberedUser) {
-            return JSON.parse(rememberedUser);
-        }
-        const sessionUser = sessionStorage.getItem('codedash_user');
-        if (sessionUser) {
-            return JSON.parse(sessionUser);
-        }
-        return null;
-    });
+    // const [currentUser, setCurrentUser] = useState(() => {
+    //     const rememberedUser = localStorage.getItem('codedash_user');
+    //     if (rememberedUser) {
+    //         return JSON.parse(rememberedUser);
+    //     }
+    //     const sessionUser = sessionStorage.getItem('codedash_user');
+    //     if (sessionUser) {
+    //         return JSON.parse(sessionUser);
+    //     }
+    //     return null;
+    // });
 
 
-    useEffect(() => {
-        if (currentUser) {
-            if (currentUser.rememberMe) {
-                localStorage.setItem('codedash_user', JSON.stringify(currentUser));
-                sessionStorage.removeItem('codedash_user'); // Clean up the other storage
-            }
-            else {
-                sessionStorage.setItem('codedash_user', JSON.stringify(currentUser));
-                localStorage.removeItem('codedash_user'); // Clean up the other storage
-            }
-        } else {
-            localStorage.removeItem('codedash_user');
-            sessionStorage.removeItem('codedash_user');
-        }
-    }, [currentUser]);
+    // useEffect(() => {
+    //     if (currentUser) {
+    //         if (currentUser.rememberMe) {
+    //             localStorage.setItem('codedash_user', JSON.stringify(currentUser));
+    //             sessionStorage.removeItem('codedash_user'); // Clean up the other storage
+    //         }
+    //         else {
+    //             sessionStorage.setItem('codedash_user', JSON.stringify(currentUser));
+    //             localStorage.removeItem('codedash_user'); // Clean up the other storage
+    //         }
+    //     } else {
+    //         localStorage.removeItem('codedash_user');
+    //         sessionStorage.removeItem('codedash_user');
+    //     }
+    // }, [currentUser]);
 
-    function updateUser(newUserData) {
-        const updatedUser = { ...currentUser, ...newUserData };
-        setCurrentUser(updatedUser);
-    }
+    // function updateUser(newUserData) {
+    //     const updatedUser = { ...currentUser, ...newUserData };
+    //     setCurrentUser(updatedUser);
+    // }
+
+    const currentUser = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
 
     // THIS FUNCTION IS THE KEY TO MAKING THE LOGIN WORK
     function handleLogin(userData, rememberMe) {
-        setCurrentUser({ ...userData, rememberMe: rememberMe });
+        // setCurrentUser({ ...userData, rememberMe: rememberMe });
         navigate('/'); // Redirect to dashboard on successful login
     }
     function handleLogout() {
-        setCurrentUser(null);
+        logout();
+        // setCurrentUser(null);
         navigate('/login'); // Redirect to login page after logout
     }
 
@@ -146,7 +152,7 @@ export default function App() {
                         {/* Your other pages are ready to be built out */}
                         <Route path={"/reports"} element={<ReportsPage />} />
                         <Route path={"/users"} element={<UsersPage />} />
-                        <Route path={"/settings"} element={<SettingsPage user={currentUser} onProfileUpdate={updateUser} onLoginSuccess={handleLogin} />} />
+                        <Route path={"/settings"} element={<SettingsPage user={currentUser} /*onProfileUpdate={updateUser} */ /*onLoginSuccess={handleLogin}*/ />} />
                         <Route path={"/login"} element={<LoginPage onLoginSuccess={handleLogin} />} />
                         <Route path={"/signup"} element={<SignupPage />} />
                         <Route path={"/forgot-password"} element={<ForgotPasswordPage />} />
@@ -158,6 +164,7 @@ export default function App() {
                         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
                         <Route path="/forgot-password/:key" element={<ResetPasswordPage />} />
                         <Route path="/resend-verification" element={<ResendVerificationPage />} />
+                        <Route path="/showcase" element={<ShowcasePage />} />
 
                     </Routes>
                 </AnimatePresence>

@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api';
 import useNotificationStore from '../stores/useNotificationStore';
 import { PasswordStrengthIndicator, FormError } from './SignupPage';
 import { FiEye, FiEyeOff, FiAlertTriangle } from 'react-icons/fi'; // Added FiAlertTriangle
+import { useCsrfToken } from '../hooks/useCsrfToken';
 
 const passwordResetSchema = z.object({
     password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -33,6 +34,7 @@ export default function ResetPasswordPage() {
     // --- REFINEMENT 1: State to control the page view (form vs. error screen) ---
     const [pageState, setPageState] = useState('form');
     const [errorMessage, setErrorMessage] = useState('');
+    const { csrfToken, isCsrfLoading } = useCsrfToken();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -71,9 +73,14 @@ export default function ResetPasswordPage() {
 
         setStatus('loading');
         try {
-            await apiFetch(`/_allauth/app/v1/auth/password/reset`, {
+            const payload = new URLSearchParams();
+            payload.append('key', key);
+            payload.append('password', formData.password);
+            payload.append('csrfmiddlewaretoken', csrfToken);
+
+            await apiFetch(`/_allauth/browser/v1/auth/password/reset`, {
                 method: 'POST',
-                body: JSON.stringify({ key, password: formData.password }),
+                body: payload,
             });
 
             // --- REFINEMENT 2: Reverted notification text for consistency ---
@@ -132,8 +139,8 @@ export default function ResetPasswordPage() {
                                     <AnimatePresence>{formErrors.confirmPassword?._errors[0] && touched.confirmPassword && <FormError message={formErrors.confirmPassword._errors[0]} />}</AnimatePresence>
                                 </div>
                                 <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
-                                    <button type="submit" disabled={status === 'loading'} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
-                                        {status === 'loading' ? 'Resetting...' : 'Reset Password'}
+                                    <button type="submit" disabled={isCsrfLoading || status === 'loading'} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
+                                        {isCsrfLoading ? 'Connecting...' : (status === 'loading' ? 'Resetting...' : 'Reset Password')}
                                     </button>
                                 </motion.div>
                             </form>

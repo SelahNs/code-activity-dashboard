@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
 import { AiFillGithub, AiOutlineGoogle } from 'react-icons/ai';
 import useNotificationStore from '../stores/useNotificationStore';
+import { useCsrfToken } from '../hooks/useCsrfToken';
 
 export const PasswordStrengthIndicator = ({ password }) => {
     const getStrength = () => {
@@ -55,6 +56,7 @@ export default function SignupPage() {
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const showNotification = useNotificationStore((state) => state.showNotification);
+    const { csrfToken, isCsrfLoading} = useCsrfToken();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -99,22 +101,23 @@ export default function SignupPage() {
 
         setSubmitStatus('loading');
         try {
+            const payload = new URLSearchParams();
+            payload.append('email', result.data.email);
+            payload.append('username', result.data.username);
+            payload.append('password', result.data.password);
+            payload.append('password2', result.data.confirmPassword);
+           payload.append('csrfmiddlewaretoken', csrfToken);
             // --- REFINEMENT 1: Conditionally add fullName to the payload ---
             // This is a more robust way to handle an optional field.
-            const payload = {
-                email: result.data.email,
-                username: result.data.username,
-                password: result.data.password,
-                password2: result.data.confirmPassword,
-            };
+            
 
             if (result.data.fullName && result.data.fullName.trim() !== '') {
-                payload.fullName = result.data.fullName;
+                payload.append('fullName', result.data.fullName);
             }
 
-            await apiFetch('/_allauth/app/v1/auth/signup', {
+            await apiFetch('/_allauth/browser/v1/auth/signup', {
                 method: 'POST',
-                body: JSON.stringify(payload),
+                body: payload,
             });
 
             setIsSubmitted(true);
@@ -224,9 +227,9 @@ export default function SignupPage() {
                                     <AnimatePresence>{formErrors.confirmPassword?._errors[0] && touched.confirmPassword && <FormError message={formErrors.confirmPassword._errors[0]} />}</AnimatePresence>
                                 </div>
                                 <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
-                                    <button type="submit" disabled={submitStatus === 'loading'}
+                                    <button type="submit" disabled={isCsrfLoading || submitStatus === 'loading'}
                                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {submitStatus === 'loading' ? 'Creating Account...' : 'Create Account'}
+                                       {isCsrfLoading ? 'Connecting...' : (submitStatus === 'loading' ? 'Creating Account...' : 'Create Account')}
                                     </button>
                                 </motion.div>
                             </form>

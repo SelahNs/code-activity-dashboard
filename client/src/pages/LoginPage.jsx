@@ -1,14 +1,14 @@
 // src/pages/LoginPage.jsx
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
-// Correctly import the necessary API helper functions
-import { fetchCsrfToken, postToAuthEndpoint, sessionApiFetch } from '../lib/api';
+import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
+import { useCsrfToken } from '../hooks/useCsrfToken';
 
 const FormError = ({ message }) => (
     <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="mt-1 text-sm text-red-600">
@@ -23,35 +23,11 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [shakeButton, setShakeButton] = useState(0);
-    const [rememberMe, setRememberMe] = useState(true);
-    const [csrfToken, setCsrfToken] = useState(null); // State to hold the CSRF token
-    const csrfFetched = useRef(false); // Ref to prevent double-fetching in StrictMode
-
+    const [rememberMe, setRememberMe] = useState(true); // State for the "Remember Me" checkbox
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
     const showNotification = useNotificationStore((state) => state.showNotification);
-
-    // Fetch CSRF token once on component mount
-    useEffect(() => {
-        // Prevent the effect from running twice in development with React StrictMode
-        if (csrfFetched.current) {
-            return;
-        }
-        csrfFetched.current = true;
-
-        const getCsrfToken = async () => {
-            try {
-                const token = await fetchCsrfToken();
-                setCsrfToken(token);
-            } catch (error) {
-                console.error('Failed to fetch CSRF token:', error);
-                showNotification('Could not initialize login form. Please refresh the page.', 'error');
-            }
-        };
-
-        getCsrfToken();
-    }, [showNotification]);
-
+    // const { csrfToken, isCsrfLoading } = useCsrfToken()
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -95,92 +71,66 @@ export default function LoginPage() {
             return;
         }
 
-        // Prevent submission if the CSRF token hasn't been fetched yet
-        if (!csrfToken) {
-            showNotification('Form is not ready, please wait a moment.', 'error');
-            return;
-        }
-
         setSubmitStatus('loading');
         try {
-            // Build the payload dynamically based on whether the identifier is an email or username
-            const payload = {
-                password: result.data.password,
-            };
+            const payload = {}
+            const { identifier, password } = result.data;
+
+            // A simple regex to check if the identifier contains an '@' symbol.
+
+            // Build the payload dynamically
+
             if (result.data.identifier.includes('@')) {
                 payload.email = result.data.identifier;
+
             } else {
                 payload.username = result.data.identifier;
             }
+            payload.password = result.data.password;
 
-            // Use the dedicated 'postToAuthEndpoint' function which handles CSRF
-            // Note: Using the '/_allauth/browser/v1/...' endpoint for CSRF-protected browser flows.
+            const response = await apiFetch('/_allauth/app/v1/auth/login', {
+               
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
 
-            // --- STEP 1: Perform the secure, session-based login ---
-            const SessionLoginResponse = await postToAuthEndpoint(
-                '/_allauth/browser/v1/auth/login',
-                payload,
-                csrfToken
-            );
-
-            // --- STEP 2: Exchange the session for a JWT ---
-            const jwtResponse = await sessionApiFetch('/api/session-to-jwt/');
-
-            // On successful login, the response contains JWTs.
-            // Pass the API response and 'rememberMe' state to the auth store.
-
-            // --- STEP 3: Store the JWTs and proceed ---
-            // Now we call the original JWT login action from useAuthStore
-            login({
-                user: jwtResponse.user,
-                access_token: jwtResponse.access_token,
-                refresh_token: jwtResponse.refresh_token,
-            }, rememberMe);
+            // On successful login, pass the API response and the 'rememberMe' state to the auth store
+            await login(response, rememberMe);
 
             navigate('/');
 
         } catch (error) {
-            console.error("The login handshake failed at some point:", error);
-
-            // --- THIS IS THE ROBUST CLEANUP LOGIC ---
-            // Regardless of what failed, we attempt to log out to clear any
-            // potentially stale session cookie that would block the next login attempt.
-            try {
-                // We must have a CSRF token to even attempt this.
-                if (csrfToken) {
-                    console.log("Attempting a cleanup logout to clear any stale session...");
-                    // The payload for logout is an empty object.
-                    await postToAuthEndpoint('/_allauth/browser/v1/auth/logout', {}, csrfToken);
-                    console.log("Cleanup logout call completed successfully.");
-                }
-            } catch (logoutError) {
-                // It's perfectly fine if this cleanup call fails (e.g., the session
-                // was never created, or the network is down). We don't need to
-                // show an error to the user for this background task.
-                console.warn("Cleanup logout call failed, but this is often expected.", logoutError);
-            }
-
-            // --- NOW, HANDLE THE USER-FACING ERROR FROM THE ORIGINAL FAILURE ---
             const errorData = error.data || {};
             const newErrors = {};
+            setShakeButton(p => p + 1);
+
+
 
             if (error.status === 400 && errorData) {
-                // This handles validation errors like "wrong password".
-                if (errorData.detail) {
-                    newErrors._general = { _errors: [errorData.detail] };
+                // Case 1: Handle general, non-field errors (like "wrong password")
+                if (errorData.non_field_errors) {
+                    newErrors._general = { _errors: errorData.non_field_errors };
+                }
+
+                // Case 2: Handle specific field validation errors (e.g., "invalid email format")
+                // This part of your original code was good, let's keep it.
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    for (const err of errorData.errors) {
+                        newErrors[err.param] = { _errors: [err.message] };
+                    }
                 } else {
                     for (const key in errorData) {
-                        if (Array.isArray(errorData[key])) {
+                        if (key !== 'non_field_errors' && Array.isArray(errorData[key])) {
                             newErrors[key] = { _errors: errorData[key] };
                         }
                     }
                 }
+
                 setFormErrors(newErrors);
-                setShakeButton(p => p + 1);
+
             } else {
-                // This handles other errors, like a network failure during the
-                // JWT exchange, or a 500 server error.
-                showNotification(error.message || 'An unknown error occurred. Please try again.', 'error');
+                // This handles server errors (500) or network issues
+                showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
             }
         } finally {
             setSubmitStatus('idle');
@@ -250,17 +200,18 @@ export default function LoginPage() {
                             <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Forgot your password?</Link>
                         </div>
                     </div>
+                    <motion.div key={shakeButton}
+                        animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
+                        <button
 
-                    <motion.button
-                        key={shakeButton}
-                        animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}
-                        type="submit"
-                        // Disable the button if the form is submitting OR if the CSRF token is not yet available
-                        disabled={submitStatus === 'loading' || !csrfToken}
-                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
-                    </motion.button>
+                            type="submit"
+                            disabled={submitStatus === 'loading'}
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {submitStatus === 'loading' ? 'Logging In...' : 'Log In'}
+                        </button>
+                    </motion.div>
+
                 </form>
 
                 <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">

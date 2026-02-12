@@ -16,22 +16,37 @@ import AppearanceSettings from "../components/AppearanceSettings";
 import ProfileSettings from "../components/ProfileSettings";
 import ProfileDisplay from "../components/ProfileDisplay";
 import { profileSchema } from "../lib/validation"; // Make sure this path is correct
+import useAuthStore from "../stores/useAuthStore";
+import useNotificationStore from "../stores/useNotificationStore";
+import AccountSettings from "../components/AccountsSettings";
 
-export default function SettingsPage({ user, onProfileUpdate }) {
+export default function SettingsPage({ }) {
     // All state is correctly defined
 
-
-    const [draftProfile, setDraftProfile] = useState(user)
-
-    useEffect(() => {
-        setDraftProfile(user);
-    }, [user]);
-
+    const userProfile = useAuthStore((state) => state.user);
+    const fetchUserProfile = useAuthStore((state) => state.fetchUserProfile);
+    const updateUserProfile = useAuthStore((state) => state.updateUserProfile);
+    const showNotification = useNotificationStore((state) => state.showNotification);
+    const [draftProfile, setDraftProfile] = useState(userProfile)
     const [formErrors, setFormErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [saveStatus, setSaveStatus] = useState('idle');
     const [profileMode, setProfileMode] = useState('display');
     const [activeTab, setActiveTab] = useState('profile');
+    //const [formData, setFormData] = useState({ ...user })
+    const updateGlobalProfile = useAuthStore((state) => state.updateGlobalProfile);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+
+    useEffect(() => {
+        fetchUserProfile();
+    }, [fetchUserProfile]);
+
+
+    useEffect(() => {
+        setDraftProfile(userProfile);
+    }, [userProfile]);
 
     // --- Core Validation ---
     const validate = (data) => {
@@ -50,7 +65,21 @@ export default function SettingsPage({ user, onProfileUpdate }) {
         const { name, value, type, checked } = e.target;
         const newValue = type === 'checkbox' ? checked : value;
         updateAndValidate({ ...draftProfile, [name]: newValue });
+        console.log('showing the draft profil on change', draftProfile)
     };
+
+    const handleUserChange = (e) => {
+        if (saveStatus === 'error') setSaveStatus('idle');
+        const { name, value } = e.target;
+
+        // Create an updated user object
+        const updatedUser = { ...draftProfile.user, [name]: value };
+
+        // Update the draftProfile with the new nested user object
+        updateAndValidate({ ...draftProfile, user: updatedUser });
+    };
+
+    // this one we may not need ti becasue now we have changed our structuer fomr just social links object to there own keys  
 
     const handleSocialChange = (e) => {
         if (saveStatus === 'error') setSaveStatus('idle');
@@ -63,10 +92,10 @@ export default function SettingsPage({ user, onProfileUpdate }) {
     };
 
 
-    function handleBlur(e) {
+    const handleBlur = (e) => {
         const { name } = e.target;
 
-        // Check if the input name is a social link
+        // Check if the input name is a social link, this also assums we have  nested object so it might need some corrections
         if (name === 'github' || name === 'linkedin' || name === 'twitter') {
             // Update the nested touched state for socialLinks
             setTouched(prev => ({
@@ -87,50 +116,57 @@ export default function SettingsPage({ user, onProfileUpdate }) {
 
 
     // THIS IS THE CRITICAL FIX FOR YOUR "SUBMIT" FEEDBACK
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        // Mark all fields as touched to show all errors
-        const allTouched = {
-            fullName: true,
-            username: true,
-            bio: true,
-            socialLinks: { github: true, linkedin: true, twitter: true }
-        };
-        setTouched(allTouched);
-
-        const errors = validate(draftProfile);
-        if (Object.keys(errors).length > 0) {
-            setFormErrors(errors);
-            setSaveStatus('error'); // Set error status
-            return; // Stop the submission
-        }
-
-        setFormErrors({});
+    const handleSubmit = async (e) => {
+        e.preventDefault(); // Prevent the form from reloading the page
+        console.log(draftProfile)
         setSaveStatus('saving');
 
-        setTimeout(() => {
-            onProfileUpdate(draftProfile)
+        // Prepare the text data for the API.
+        const submissionData = {
+            // NOTE: The name comes from the nested user object in your draft state
+            full_name: draftProfile.user.full_name,
+            bio: draftProfile.bio,
+            is_hireable: draftProfile.is_hireable,
+            github_url: draftProfile.github_url,
+            linkedin_url: draftProfile.linkedin_url,
+            twitter_url: draftProfile.twitter_url,
+            avatar_id: draftProfile.avatar_id || ''
+        };
+
+        console.log('submiossion data', submissionData)
+
+        // Call the updateUserProfile action from your store,
+        // giving it BOTH the text data AND the file.
+        const result = await updateUserProfile(submissionData, avatarFile);
+
+        if (result.success) {
+            setDraftProfile(result.data)
             setSaveStatus('success');
+            showNotification("Profile updated successfully!", "success");
+            setAvatarFile(null); // Clear the file after successful upload we need more clariication in this, and also the handle dubmit package transmision including the awiat fetch
             setTimeout(() => {
                 setProfileMode('display');
                 setSaveStatus('idle');
-                setTouched({});
             }, 1500);
-        }, 2000);
+        } else {
+            setSaveStatus('error');
+            showNotification(result.error?.detail || 'Failed to update profile.', 'error');
+        }
     };
 
     const onEditClick = () => {
         setProfileMode('edit');
-        setDraftProfile(user);
+        setDraftProfile(userProfile);
     };
 
     const onCancel = () => {
-        setDraftProfile(user);
+        setDraftProfile(userProfile);
         setProfileMode('display');
         setFormErrors({});
         setTouched({});
     };
+
+
 
     // The NEW, smarter getTabClassName function
     const getTabClassName = (tab) => {
@@ -146,6 +182,12 @@ export default function SettingsPage({ user, onProfileUpdate }) {
 
         return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
     };
+
+    if (!userProfile) {
+        return <div className="p-8">Loading settings...</div>;
+    }
+
+
     return (
         <main className="px-4 sm:px-6 lg:px-8 py-8">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-200">Settings</h1>
@@ -182,7 +224,7 @@ export default function SettingsPage({ user, onProfileUpdate }) {
                 <div className="flex-grow max-w-3xl">
                     {activeTab === 'profile' && (
                         profileMode === 'display'
-                            ? <ProfileDisplay formData={user} onEditClick={onEditClick} />
+                            ? <ProfileDisplay formData={userProfile} onEditClick={onEditClick} />
                             : <ProfileSettings
                                 errors={formErrors}
                                 touched={touched}
@@ -190,14 +232,16 @@ export default function SettingsPage({ user, onProfileUpdate }) {
                                 handleChange={handleChange}
                                 handleSubmit={handleSubmit}
                                 saveStatus={saveStatus}
+                                setAvatarFile={setAvatarFile}
                                 onCancel={onCancel}
-                                setFormData={setFormData}
+                                setFormData={setDraftProfile}
                                 handleSocialChange={handleSocialChange}
+                                handleUserChange={handleUserChange}
                                 handleBlur={handleBlur}
                             />
                     )}
                     {activeTab === 'appearance' && <AppearanceSettings />}
-                    {activeTab === 'account' && <div>Account Settings</div>}
+                    {activeTab === 'account' && <AccountSettings />}
                     {activeTab === 'notifications' && <div>Notification Settings</div>}
                 </div>
             </div>

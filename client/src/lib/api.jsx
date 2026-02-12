@@ -1,6 +1,8 @@
 // src/lib/api.js
 
-const BASE_URL = 'http://localhost:8000'; // Your backend server address
+import useAuthStore from "../stores/useAuthStore";
+
+const BASE_URL = 'http://127.0.0.1:8000'; // Your backend server address
 
 // src/lib/api.js
 
@@ -15,9 +17,11 @@ const BASE_URL = 'http://localhost:8000'; // Your backend server address
 export const apiFetch = async (endpoint, options = {}) => {
     // 1. Set up the request
     const headers = {
-        'Content-Type': 'application/json',
         ...options.headers,
     };
+    if (!options.body instanceof FormData) {
+        headers['Content-Type'] = 'application/json';
+    }
     const config = { ...options, headers };
     const url = `http://127.0.0.1:8000${endpoint}`;
 
@@ -74,173 +78,104 @@ export const authApiFetch = async (endpoint, options = {}) => {
     // A function to perform the actual fetch with the current token
     const performFetch = async () => {
         const accessToken = useAuthStore.getState().accessToken;
+        console.log("Inside performFetch. Access Token is:", accessToken);
         const headers = {
-            'Content-Type': 'application/json',
             ...options.headers,
         };
+
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
-        const config = { ...options, headers };
-        const url = `${BASE_URL}${endpoint}`;
-        return fetch(url, config);
+        return apiFetch(endpoint, { ...options, headers })
     };
 
-    let response = await performFetch();
+    try {
+        return await performFetch();
 
-    if (response.status === 401) {
-        console.log('Caught 401 Unauthorized. Attempting to refresh token...');
-        const { refreshToken, login, logout, user, rememberMe } = useAuthStore.getState();
+    } catch (error) {
+        if (error.status !== 401) {
+            throw error;
+        }
+
+        console.log("Caught 401> Attempting to refresh token...");
+        const { refreshToken, setTokens, logout } = useAuthStore.getState();
 
         if (!refreshToken) {
             logout();
             window.location.href = '/login';
-            throw new Error('No refresh token available. User logged out.');
+            throw new Error('No refesh token, User logged out.');
         }
 
         try {
-            // Make the call to the refresh endpoint
-            const refreshResponse = await fetch(`${BASE_URL}/_allauth/app/v1/auth/token/refresh`, {
+            const refreshData = await apiFetch('/api/token/refresh/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken }),
-            });
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refresh: refreshToken }),
+            })
+            setTokens(refreshData.access, refreshToken);
+            console.log('Token refresh succussfull. Retrying original request');
+            return await performFetch();
 
-            const refreshData = await refreshResponse.json();
-
-            if (!refreshResponse.ok) {
-                console.error("Refresh token is invalid or expired. Logging out.");
-                logout();
-                window.location.href = '/login';
-                throw new Error('Session expired. Please log in again.');
-            }
-
-            console.log('Token refresh successful. Retrying original request.');
-            // Update the store with the new tokens
-            login({ user, ...refreshData }, rememberMe);
-
-            // Retry the original request with the new token
-            response = await performFetch();
-
-        } catch (error) {
-            console.error('An error occurred during token refresh:', error);
-            throw error; // Re-throw the error to be caught by the component
+        } catch (refreshError) {
+            console.error("Refresh token invalid or expired. Logging out", refreshError);
+            logout();
+            window.location.href = '/login';
+            throw new Error('Session  expired, Please lof in again.');
         }
     }
-
-    // Process the final response (either original or retried)
-    if (response.status === 204) return { ok: true };
-    const data = await response.json();
-    if (!response.ok) throw { status: response.status, data };
-    return data;
 };
 
 
+export const apiClient = {
+    getProfile: () => {
+        const result = authApiFetch('/api/profile/');
+        console.log("the result form get prfoile is", result)
+        return result
+    },
+    // updateProfile: (profileData) => {
+    //     const options = {
+    //         method: 'PUT',
+    //         body: JSON.stringify(profileData),
+    //     }
+    //     return authApiFetch('/api/profile/', options);
+    // },
+    updateProfile: (profileData, avatarFile) => {
+        const formData = new FormData();
+        Object.keys(profileData).forEach(key => {
+            formData.append(key, profileData[key])
+        });
 
-
-/**
- * A helper function to handle API responses and errors consistently.
- * @param {Response} response - The raw response from the fetch API.
- * @returns {Promise<any>} - A promise that resolves with the JSON data.
- * @throws {Error} - Throws a custom error object on failure.
- */
-const handleApiResponse = async (response) => {
-    let data;
-    try {
-        data = await response.json();
-    } catch (e) {
-        // Handle cases where the server sends non-JSON (like the Django 403 HTML page)
-        data = { detail: `The server sent a response that was not valid JSON. Status: ${response.status}` };
-    }
-
-    if (!response.ok) {
-        const error = new Error(data.detail || 'An API error occurred');
-        error.data = data;
-        error.status = response.status;
-        throw error;
-    }
-    return data;
-};
-
-/**
- * Fetches a CSRF token from the backend.
- * This is the first step in any CSRF-protected flow.
- * It ensures the browser receives and stores the `csrftoken` cookie.
- * @returns {Promise<string>} A promise that resolves with the CSRF token string.
- */
-export const fetchCsrfToken = async () => {
-    const response = await fetch(`${BASE_URL}/api/csrf-token/`, {
-        // CRITICAL: This allows the browser to receive and store the cookie
-        // from the cross-origin backend server.
-        credentials: 'include',
-    });
-    const data = await handleApiResponse(response);
-    return data.csrfToken;
-};
-
-
-
-/**
- * Posts data to a CSRF-protected authentication endpoint.
- * It correctly formats the data as 'application/x-www-form-urlencoded' and
- * ensures the CSRF cookie is sent with the request.
- *
- * @param {string} endpoint - The endpoint path (e.g., '/_allauth/browser/v1/auth/login').
- * @param {object} data - A plain JavaScript object with the form data (e.g., { email, password }).
- * @param {string} csrfToken - The CSRF token obtained from fetchCsrfToken.
- * @returns {Promise<any>} A promise that resolves with the JSON response from the server.
- */
-export const postToAuthEndpoint = async (endpoint, data, csrfToken) => {
-    // MODIFIED: We are now sending JSON, not URLSearchParams.
-    const payload = JSON.stringify(data);
-
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            // The CSRF Token header is correct.
-            'X-CSRFToken': csrfToken,
-            // MODIFIED: The Content-Type must be application/json.
-            'Content-Type': 'application/json',
-        },
-        body: payload,
-    });
-    return handleApiResponse(response);
-};
-
-/**
- * A simple client for making a session-authenticated request.
- * It automatically includes cookies. Used for the session-to-JWT exchange.
- */
-export const sessionApiFetch = async (endpoint, options = {}) => {
-    const config = {
-        method: 'POST', // This should be a POST request
-        ...options,
-        credentials: 'include', // This is the magic that sends the sessionid cookie
-        headers: {
-            'Content-Type': 'application/json',
-            // The CSRF token is needed for a POST request
-            'X-CSRFToken': getCookie('csrftoken'),
-            ...options.headers,
-        },
-    };
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    return handleApiResponse(response); // Reuse your existing handler
-};
-
-// Helper function to read a cookie, needed for the CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
+        if (avatarFile) {
+            formData.append('avatar', avatarFile);
         }
-    }
-    return cookieValue;
+
+        return authApiFetch('/api/profile/', {
+            method: 'PUT',
+            body: formData, // no JSON.stringify here
+        });
+    },
+
+    changePassword: (passwordData) => {
+        const options = {
+            method: 'POST',
+            body: JSON.stringify(passwordData)
+        };
+
+        return authApiFetch('/_allauth/app/v1/account/password/change', options);
+    },
+
+    addEmail: (email) => {
+        const options = {
+            method: 'POST',
+            body: JSON.stringify({ email: email }),
+        };
+        return authApiFetch('/_allauth/app/v1/account/email', options);
+    },
 }
