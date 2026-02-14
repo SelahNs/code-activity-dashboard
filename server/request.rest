@@ -1,0 +1,10 @@
+POST http://localhost:3001/api/activities
+Content-Type: application/json
+
+{
+  "project": "Dashboard-UI",
+  "duration": 120,
+  "keystrokes": 15000,
+  "linesAdded": 400,
+  "language": "JavaScript"
+}

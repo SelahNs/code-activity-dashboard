@@ -6,4 +6,13 @@ activitiesRouter.get('/', async (request, response) => {
   response.json(activities);
 })
 
+activitiesRouter.post('/', async (request, response) => {
+  const activity = new Activity(request.body);
+  if (!activity) {
+    return response.status(400).json({error: "empty request"}); 
+  }
+  await activity.save();
+  response.status(201).json(activity);
+})
+
 module.exports = activitiesRouter
