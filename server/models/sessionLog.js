@@ -1,10 +1,10 @@
-const mongoose = require('mogoose');
+const mongoose = require('mongoose');
 
 
 const sessionLogSchema = mongoose.Schema({
   user: { 
     //type: mongoose.Schema.Types.ObjectId, //ref: 'User'
-    type: String, default: selha,
+    type: String, default: "selha",
     },
   project: {
     //type: mongoose.Schema.Types.ObjectId, ref: 'Project'
