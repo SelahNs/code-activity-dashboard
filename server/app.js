@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const activitiesRouter = require('./controllers/activities')
+const sessionLogRouter = require('./controllers/sessionLog')
 require('dotenv').config();
 
 const app = express();
@@ -20,6 +21,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/activities', activitiesRouter);
-
+app.use('/api/session-logs', sessionLogRouter)
 
 module.exports = app
