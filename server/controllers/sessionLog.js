@@ -2,19 +2,26 @@ const sessionLogRouter = require('express').Router();
 const sessionLog = require('../models/sessionLog');
 
 
-sessionLogRouter.get('/', (request, response) => {
-  response.json({alldatas: sessionLog})
+sessionLogRouter.get('/', async (request, response) => {
+  const toSend = await sessionLog.find({})
+  response.json(toSend)
 }) 
 
 
 sessionLogRouter.post('/', async (request, response) => {
-  const activity = new Activity(request.body);
-  if (!activity) {
+  const body = request.body;
+  if (!body) {
     return response.status(400).json({error: "empty request"}); 
   }
-  await activity.save();
-  response.status(201).json(activity);
+  if (Array.isArray(body)) {
+    await sessionLog.insertMany(body);
+    return response.status(201).end()
+  } else {
+    const session = new sessionLog(body);
+    await session.save();
+    return response.status(201).end();
+  }
 })
 
 
-module.export = sessionLogRouter
+module.exports = sessionLogRouter

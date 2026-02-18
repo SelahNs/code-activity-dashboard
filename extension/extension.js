@@ -46,10 +46,17 @@ function activate(context) {
 	})
 
 	setInterval(()=> {
-		if (currentSession.keystrokes === 0 && currentSession.charsDeleted === 0) {
+		let offlineQueue = context.globalState.get('activity_queue', []);
+		const hasNewData = currentSession.keystrokes === 0 || currentSession.charsDeleted === 0
+
+		if (!hasNewData && offlineQueue.length === 0) {
 			return;
 		}
+
+
 		const dataToSend = {...currentSession,timeStamp: new Date().toISOString()}
+		offlineQueue.push(dataToSend)
+		context.globalState.update('activity_queue', offlineQueue);
 
 		console.log("Shippint to backend:", dataToSend);
 
@@ -65,13 +72,13 @@ function activate(context) {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(dataToSend)
+			body: JSON.stringify(offlineQueue)
 		})
 		.then(response => {
 			if (response.ok) {
+				context.globalState.update('activity_queue', [])
 				console.log("sent!")
-			} else {
-				console.error("Server rejected status:", response.statusText)
+
 			}
 		})
 		.catch(error => {
