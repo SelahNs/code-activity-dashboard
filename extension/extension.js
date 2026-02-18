@@ -1,3 +1,5 @@
+import { timeStamp } from 'console';
+
 const vscode = require('vscode');
 
 const currentSession = {
@@ -42,6 +44,41 @@ function activate(context) {
 
 		})
 	})
+
+	setInterval(()=> {
+		if (currentSession.keystrokes === 0 && currentSession.charsDeleted === 0) {
+			return;
+		}
+		const dataToSend = {...currentSession,timeStamp: new Date().toISOString()}
+
+		console.log("Shippint to backend:", dataToSend);
+
+		currentSession.keystrokes = 0;
+		currentSession.charsAdded = 0;
+		currentSession.charsDeleted = 0;
+		currentSession.linesAdded = 0;
+		currentSession.linesDeleted = 0;
+
+		console.log("Sesseion reset. ready for the next minute");
+		fetch('http://localhost:3001/api/activities', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(dataToSend)
+		})
+		.then(response => {
+			if (response.ok) {
+				console.log("sent!")
+			} else {
+				console.error("Server rejected status:", response.statusText)
+			}
+		})
+		.catch(error => {
+			console.error("Network Error!", error)
+		})
+
+	}, 60000)
 
 	context.subscriptions.push(disposable2);
 
