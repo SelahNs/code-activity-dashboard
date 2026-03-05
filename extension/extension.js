@@ -47,7 +47,7 @@ function activate(context) {
 
 	setInterval(()=> {
 		let offlineQueue = context.globalState.get('activity_queue', []);
-		const hasNewData = currentSession.keystrokes === 0 || currentSession.charsDeleted === 0
+		const hasNewData = currentSession.keystrokes > 0 || currentSession.charsDeleted > 0
 
 		if (!hasNewData && offlineQueue.length === 0) {
 			return;

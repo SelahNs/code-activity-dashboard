@@ -1,0 +1,96 @@
+const mongoose = require('mongoose')
+
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    unique: true,
+    required: true,
+    trim: true,
+    minlength: 3
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  passwordHash: {
+    type:String,
+    required: true,
+  },
+  apiSecret: {
+    type: String,
+    unique: true,
+    select: false
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+    select: false
+  },
+  profile: {
+    fullName: String,
+    bio: {
+      type: String,
+      maxlength: 300
+    },
+    location: String,
+    socials: {
+      github: String,
+      linkedin: String,
+      twitter: String
+    },
+    isHireable: {
+      type: Boolean,
+      default: false
+    },
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
+    website: String,
+    avatarPresetId: {
+      type: String,
+      default: 'default'
+    }
+  },
+  stats: {
+    xp: {
+      type: Number,
+      default: 0,
+    },
+    totalLinesAdded: {
+      type: Number,
+      default: 0,
+    },
+    totalLinesDeleted: {
+      type: Number,
+      default: 0
+    },
+    totalSecondsCoded: {
+      type: Number,
+      default: 0,
+    },
+    currentStreak: {
+      type: Number,
+      default: 0,
+    },
+    longestStreak: {
+      type: Number,
+      default: 0
+    },
+    humanCyborgRatio: {
+      type: Number,
+      default: 100
+    },
+    languages: {
+      type: Map,
+      of: Number
+    }
+
+  }
+}, { timestamps: true})
