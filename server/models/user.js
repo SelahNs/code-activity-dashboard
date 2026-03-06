@@ -28,10 +28,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  lastActiveDate: {
+    type: Date,
+    default: Date.now,
+  },
   verificationToken: {
     type: String,
     select: false
   },
+  verificationTokenExpires: Date,
   profile: {
     fullName: String,
     bio: {
@@ -69,6 +74,16 @@ const userSchema = new mongoose.Schema({
     },
     totalLinesDeleted: {
       type: Number,
+      default: 0,
+    },
+    totalCharsDeleted: {
+      type: Number,
+      default: 0
+    },totalCharsAdded: {
+      type: Number,
+      default: 0
+    },totalKeystrokes: {
+      type: Number,
       default: 0
     },
     totalSecondsCoded: {
@@ -87,10 +102,35 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 100
     },
+    
+    level: {
+      type: Number,
+      default: 1
+    },
+    
+    
+  },
+    skills: {
+      editors: {
+      type: Map,
+      of: Number
+    },
     languages: {
       type: Map,
       of: Number
-    }
-
+    },
   }
 }, { timestamps: true})
+
+userSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.passwordHash
+    delete returnedObject.__v
+  }
+})
+
+const User= mongoose.model('User', userSchema)
+
+module.exports = User
