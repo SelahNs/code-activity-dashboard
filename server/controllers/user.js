@@ -11,9 +11,12 @@ userRouter.post('/', async (request, response) => {
   if (!(username && email && password)) {
     return response.status(400).send({error: 'bad request'})
   }
+  if (password.length < 8) {
+    return response.status(400).send({error: "invalid password"})
+  }
 
   const saltrounds = 10;
-  const passwordHash = bcrypt.hash(password, saltrounds)
+  const passwordHash = await bcrypt.hash(password, saltrounds)
 
 })
 
