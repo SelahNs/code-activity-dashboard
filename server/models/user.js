@@ -128,6 +128,8 @@ userSchema.set('toJSON', {
     delete returnedObject._id;
     delete returnedObject.passwordHash
     delete returnedObject.__v
+    delete returnedObject.verificationToken
+    delete returnedObject.apiSecret
   }
 })
 
