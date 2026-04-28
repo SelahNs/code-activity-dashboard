@@ -1,13 +1,23 @@
 const mongoose = require('mongoose');
 
 const activitySchema = mongoose.Schema({
-  date: Date,
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   duration: Number,
   keystrokes: Number,
+  charsAdded: Number,
+  charsDeleted: Number,
   linesAdded: Number,
+  linesDeleted: Number,
   language: String,
-  project: String
-})
+  editor: String,
+  humanCyborgRatio: Number,
+  project: String,
+  independentFile: String,
+  capturedAt: Date
+}, {timestamps: true})
 
 activitySchema.set('toJSON', {
   transform: (document, returnedObject)=> {

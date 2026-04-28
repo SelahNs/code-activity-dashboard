@@ -115,7 +115,7 @@ export default function SignupPage() {
                 payload.append('fullName', result.data.fullName);
             }
 
-            await apiFetch('/_allauth/browser/v1/auth/signup', {
+            await apiFetch('/api/signup', {
                 method: 'POST',
                 body: payload,
             });

@@ -2,7 +2,7 @@
 
 import useAuthStore from "../stores/useAuthStore";
 
-const BASE_URL = 'http://127.0.0.1:8000'; // Your backend server address
+const BASE_URL = 'http://localhost:3001'; // Your backend server address
 
 // src/lib/api.js
 
@@ -19,11 +19,11 @@ export const apiFetch = async (endpoint, options = {}) => {
     const headers = {
         ...options.headers,
     };
-    if (!options.body instanceof FormData) {
+    if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
     const config = { ...options, headers };
-    const url = `http://127.0.0.1:8000${endpoint}`;
+    const url = `${BASE_URL}${endpoint}`;
 
     try {
         const response = await fetch(url, config);

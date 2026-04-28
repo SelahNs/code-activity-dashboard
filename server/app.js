@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const activitiesRouter = require('./controllers/activities')
 const sessionLogRouter = require('./controllers/sessionLog')
 const userRouter = require('./controllers/user')
+const middleware = require('./utils/middleware')
+const loginRouter = require('./controllers/login')
+const verifyRouter = require('./controllers/verifyextension')
 require('dotenv').config();
 
 const app = express();
@@ -21,8 +24,11 @@ mongoose.connect(url).then(()=> {
 app.use(cors());
 app.use(express.json());
 
+app.use(middleware.userExtractor)
 app.use('/api/activities', activitiesRouter);
 app.use('/api/session-logs', sessionLogRouter)
-app.use('/api/singin', userRouter)
-
+app.use('/api/signup', userRouter)
+app.use('/api/verify', verifyRouter)
+app.use('/api/login', loginRouter)
+app.use(middleware.errorHandler)
 module.exports = app

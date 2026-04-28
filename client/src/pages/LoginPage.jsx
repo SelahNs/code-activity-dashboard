@@ -88,7 +88,7 @@ export default function LoginPage() {
             }
             payload.password = result.data.password;
 
-            const response = await apiFetch('/_allauth/app/v1/auth/login', {
+            const response = await apiFetch('/api/login', {
                
                 method: 'POST',
                 body: JSON.stringify(payload),

@@ -14,10 +14,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
   },
   passwordHash: {
     type:String,
     required: true,
+    select: false
   },
   apiSecret: {
     type: String,
@@ -100,7 +102,7 @@ const userSchema = new mongoose.Schema({
     },
     humanCyborgRatio: {
       type: Number,
-      default: 100
+      default: 1.0
     },
     
     level: {
@@ -110,8 +112,8 @@ const userSchema = new mongoose.Schema({
     
     
   },
-    skills: {
-      editors: {
+  skills: {
+    editors: {
       type: Map,
       of: Number
     },
@@ -119,7 +121,16 @@ const userSchema = new mongoose.Schema({
       type: Map,
       of: Number
     },
-  }
+    projects: {
+      type: Map,
+      of: Number
+    },
+    independentFiles: {
+      type: Map,
+      of: Number
+    }
+  },
+  
 }, { timestamps: true})
 
 userSchema.set('toJSON', {
