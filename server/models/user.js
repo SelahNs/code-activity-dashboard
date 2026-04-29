@@ -10,15 +10,20 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
+    required: function() {
+      return !this.github || !this.github.id; // this could be changed latter for marketing purposes
+    },
     unique: true,
     lowercase: true,
+    sparse: true,
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
   },
   passwordHash: {
     type:String,
-    required: true,
+    required: function() {
+      return !this.github || !this.github.id;
+    },
     select: false
   },
   apiSecret: {
@@ -130,6 +135,15 @@ const userSchema = new mongoose.Schema({
       of: Number
     }
   },
+  github: {
+    id: {
+      type: Number,
+      unique: true,
+      sparse: true
+    },
+    installationId: [String],
+    username: String
+  }
   
 }, { timestamps: true})
 
