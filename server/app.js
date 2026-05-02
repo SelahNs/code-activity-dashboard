@@ -7,6 +7,7 @@ const userRouter = require('./controllers/user')
 const middleware = require('./utils/middleware')
 const loginRouter = require('./controllers/login')
 const verifyRouter = require('./controllers/verifyextension')
+const githubAuthRouter = require('./controllers/githubAuth')
 require('dotenv').config();
 
 const app = express();
@@ -30,5 +31,6 @@ app.use('/api/session-logs', sessionLogRouter)
 app.use('/api/signup', userRouter)
 app.use('/api/verify', verifyRouter)
 app.use('/api/login', loginRouter)
+app.use('/api/auth/github', githubAuthRouter)
 app.use(middleware.errorHandler)
 module.exports = app

@@ -239,10 +239,10 @@ export default function SignupPage() {
                                     <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">Or sign up with</span></div>
                                 </div>
                                 <div className="mt-6 grid grid-cols-1 gap-3">
-                                    <button type="button" onClick={() => alert("GitHub signup coming soon!")}
+                                    <button type="button"
                                         className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                                         <AiFillGithub className="w-5 h-5 mr-2" />
-                                        Continue with GitHub
+                                        <a href="https://github.com/login/oauth/authorize?client_id=Iv23lisg4lKqAlS3Ox26&scope=repo,user">Continue with GitHub</a>
                                     </button>
                                     <button type="button" onClick={() => alert("Google signup coming soon!")}
                                         className="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">

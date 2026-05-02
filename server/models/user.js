@@ -56,6 +56,7 @@ const userSchema = new mongoose.Schema({
       linkedin: String,
       twitter: String
     },
+    company: String,
     isHireable: {
       type: Boolean,
       default: false

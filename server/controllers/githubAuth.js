@@ -1,18 +1,22 @@
 const githubAuthRouter = require('express').Router()
-const { json } = require('express')
+require('dotenv').config()
+const jwt = require('jsonwebtoken')
 const User = require('../models/user')
 const clientID = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
 
 githubAuthRouter.get('/callback', async (request, response) => {
+  console.log('clientSecret:', clientSecret)
+  console.log('cleintId:', clientID)
   const code = request.query.code;
   const installationId = request.query.installation_id
+  const url = 'http://localhost:5173/auth-success?token='
   let access_token;
   try {
     const githubResponse = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: {
-      "content-Type": "application/json",
+      "Content-Type": "application/json",
       "Accept": "application/json"
     },
     body: JSON.stringify({
@@ -22,8 +26,9 @@ githubAuthRouter.get('/callback', async (request, response) => {
     })
   })
     const data = await githubResponse.json()
+    console.log(data)
     if (data.error) {
-      throw new Error(data.error_description || 'GitHub Auth Failed.')
+      throw new Error(data.error_description || data.error || 'GitHub Auth Failed.')
     }
 
     access_token = data.access_token
@@ -40,22 +45,118 @@ githubAuthRouter.get('/callback', async (request, response) => {
     const foundUser = await User.findOne({ "github.id": userData.id});
     
     if (request.user) {
-      await User.updateOne({_id: request.user.id}, { 
-        $set: {
+      //const thisUser = await User.findOne({_id: request.user.id})
+      let updateData ={ $set: {
           "github.id": userData.id,
           "github.username": userData.login
         },
-        $addToSet: {
-         "github.installationId": installationId
-        }
-    })
-
-    } else {
-      if (foundUser) {
-
-      } else {
-
+        $addToSet: {}
       }
+      // exmaple of github response 
+      //    {
+      //   "login": "octocat",
+      //   "id": 583231,
+      //   "node_id": "MDQ6VXNlcjU4MzIzMQ==",
+      //   "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+      //   "html_url": "https://github.com/octocat",
+      //   "type": "User",
+      //   "name": "The Octocat",
+      //   "company": "GitHub",
+      //   "blog": "https://github.com/blog",
+      //   "location": "San Francisco",
+      //   "email": "octocat@github.com",
+      //   "bio": "There once was...",
+      //   "public_repos": 2,
+      //   "followers": 20,
+      //   "created_at": "2011-01-25T18:44:53Z",
+      //   "updated_at": "2011-01-25T18:44:53Z"
+      // }
+      
+      if (installationId) {
+        updateData.$addToSet['github.installationId'] = installationId;
+      }
+      await User.updateOne({_id: request.user.id}, updateData)
+      return response.redirect('http://localhost:5173/settings?status=linked')
+      } else {
+      if (foundUser) {
+        let updateData = { 
+          $set: {
+            "github.id": userData.id,
+            "github.username": userData.login
+          },
+          $addToSet: {}
+        }
+        if (installationId) {
+        updateData.$addToSet['github.installationId'] = installationId;
+      }
+      await User.updateOne({_id: foundUser.id}, updateData)
+      const payload = {username: foundUser.username, id: foundUser.id}
+      const token = jwt.sign(payload, process.env.SECRET, {expiresIn: 60*60*24})
+      return response.redirect(url+token)
+      } else {
+        const res = await fetch('https://api.github.com/user/emails', {
+          method: 'GET',
+          headers: {
+            "Authorization": `Bearer ${access_token}`,
+            "User-Agent": `CodeTracker-App`,
+            "Accept": 'application/json'
+          }
+        })
+        const emails = await res.json();
+        console.log('emials:', emails)
+        const primaryEmailObj = emails.find(e => e.primary && e.verified)
+        const finalEmail = primaryEmailObj ? primaryEmailObj.email : null;
+        let user = null;
+        if (finalEmail) {
+           user = await User.findOne({email: finalEmail})
+        } 
+        let newUser;
+        if(user) {
+          let updateData = { 
+            $set: {
+              "github.id": userData.id,
+              "github.username": userData.login
+            },
+            $addToSet: {}
+          }
+          if (installationId) {
+            updateData.$addToSet['github.installationId'] = installationId;
+          }
+          newUser = await User.findOneAndUpdate({_id: user.id}, updateData, {new: true})
+        } else {
+          const isUsernameTaken = await User.findOne({ username: userData.login})
+          let finalUsername;
+          if (isUsernameTaken) {
+            finalUsername = userData.login + '_' + userData.id;
+          } else {
+            finalUsername = userData.login;
+          }
+          newUser = await User.create({
+            username: finalUsername, 
+            email: finalEmail,       
+            github: {
+              id: userData.id,
+              username: userData.login,
+              installationId: installationId ? [installationId] : []
+            },
+            profile: {
+              fullName: userData.name,
+              avatarUrl: userData.avatar_url,
+              bio: userData.bio,
+              location: userData.location,
+              company: userData.company,
+              website: userData.blog,
+              socials: {
+                github: userData.html_url
+              }
+            }
+          })
+
+        }
+        const payload = { username: newUser.username, id: newUser._id };
+        const token = jwt.sign(payload, process.env.SECRET, { expiresIn: 60*60*24 });
+        return response.redirect(url + token);
+    }
     }
 
   } catch(error) {
@@ -63,3 +164,6 @@ githubAuthRouter.get('/callback', async (request, response) => {
     return response.status(500).json({ error: 'Something went wrong while connecting to GitHub. Please try again.' })
   }
 })
+
+
+module.exports = githubAuthRouter

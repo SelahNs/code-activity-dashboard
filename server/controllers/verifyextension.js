@@ -1,4 +1,4 @@
-const verifyRouter = require('express').Router
+const verifyRouter = require('express').Router()
 
 verifyRouter.get('/', async (request, response) => {
   if(request.user) {
