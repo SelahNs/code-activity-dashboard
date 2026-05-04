@@ -23,7 +23,7 @@ export function useCsrfToken() {
             }    
         };
         fetchCsrfToken();
-    }, [showNotification]);
+    }, []);
     
-    return { csrfToken, isCsrfLoading };
+    return { csrfToken, isCsrfLoading, retryFetchCsrfToken: fetchCsrfToken };
 }

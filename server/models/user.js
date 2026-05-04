@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const validator = require('validator')
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -6,7 +7,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     required: true,
     trim: true,
-    minlength: 3
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [20, 'Username cannot exceed 20 characters'],
+    validate: {
+      validator: (value) => validator.isAlphanumeric(value),
+      message: 'Username can only contain letters and numbers'
+    }
   },
   email: {
     type: String,
@@ -17,7 +23,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     sparse: true,
     trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
+    validate: {
+      validator: (value) => validator.isEmail(value),
+      message: 'Please provide a valid email'
+    }
   },
   passwordHash: {
     type:String,
@@ -45,18 +54,29 @@ const userSchema = new mongoose.Schema({
   },
   verificationTokenExpires: Date,
   profile: {
-    fullName: String,
+    fullName: {
+      type: String,
+      trim: true,
+      maxlength: [255, 'Full name cannot exceed 255 characters']
+    },
     bio: {
       type: String,
-      maxlength: 300
+      maxlength: [300, 'Bio cannot exceed 300 characters']
     },
-    location: String,
+    location: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Location cannot exceed 100 characters']
+    },
     socials: {
-      github: String,
-      linkedin: String,
-      twitter: String
+      github: { type: String, maxlength: [500, 'URL too long'] },
+      linkedin: { type: String, maxlength: [500, 'URL too long'] },
+      twitter: { type: String, maxlength: [500, 'URL too long'] }
     },
-    company: String,
+    company: {
+      type: String,
+      maxlength: [100, 'Company too long']
+    },
     isHireable: {
       type: Boolean,
       default: false
@@ -65,7 +85,10 @@ const userSchema = new mongoose.Schema({
       type: String,
       default: null,
     },
-    website: String,
+    website: {
+      type: String,
+      maxlength: [500, 'URL too long']
+    },
     avatarPresetId: {
       type: String,
       default: 'default'
