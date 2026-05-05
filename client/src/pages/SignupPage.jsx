@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
 import { AiFillGithub } from 'react-icons/ai';
 import useNotificationStore from '../stores/useNotificationStore';
+import useAuthStore from '../stores/useAuthStore'
 
 export const PasswordStrengthIndicator = ({ password }) => {
     const getStrength = () => {
@@ -61,6 +62,8 @@ export default function SignupPage() {
     const [submitStatus, setSubmitStatus] = useState('idle');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const showNotification = useNotificationStore((state) => state.showNotification);
+    const login = useAuthStore((state) => state.login);
+    const navigate = useNavigate();
 
     const handleGithubClick = () => {
         window.location.href = 'https://github.com/login/oauth/authorize?client_id=Iv23lisg4lKqAlS3Ox26&scope=repo,user';
@@ -126,15 +129,15 @@ export default function SignupPage() {
                 })
             };
 
-            await apiFetch('/api/signup', {
+            const response = await apiFetch('/api/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             // Success — show the "check your email" screen
-            setIsSubmitted(true);
-
+            login(response, false);
+            navigate('/dashboard');
         } catch (error) {
             const errorData = error.data || {};
 
@@ -170,27 +173,7 @@ export default function SignupPage() {
         >
             <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
                 <AnimatePresence mode="wait">
-                    {isSubmitted ? (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            className="text-center"
-                        >
-                            <FiMail className="w-16 h-16 text-green-500 mx-auto" />
-                            <h2 className="mt-4 text-2xl font-bold text-slate-800 dark:text-slate-200">
-                                Check Your Inbox
-                            </h2>
-                            <p className="mt-2 text-slate-500 dark:text-slate-400">
-                                We've sent a verification link to{' '}
-                                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                    {formData.email}
-                                </span>{' '}
-                                to activate your account.
-                            </p>
-                        </motion.div>
-                    ) : (
+                    {(
                         <motion.div key="form">
                             <div className="text-center mb-8">
                                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">

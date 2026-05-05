@@ -8,7 +8,7 @@ import { apiFetch } from '../lib/api';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
-import { useCsrfToken } from '../hooks/useCsrfToken';
+import { AiFillGithub } from 'react-icons/ai';
 
 const FormError = ({ message }) => (
     <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="mt-1 text-sm text-red-600">
@@ -89,52 +89,52 @@ export default function LoginPage() {
             payload.password = result.data.password;
 
             const response = await apiFetch('/api/login', {
-               
+
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
 
-            // On successful login, pass the API response and the 'rememberMe' state to the auth store
+            console.log('Login response:', response); // ← add this
             await login(response, rememberMe);
+            console.log('After login store:', useAuthStore.getState()); 
 
-            navigate('/');
-
+            navigate('/dashboard');
         } catch (error) {
-            const errorData = error.data || {};
+    const errorData = error.data || {};
+    setShakeButton(p => p + 1);
+
+    if (error.status === 400 || error.status === 401) {
+        // Both 400 and 401 can have user-facing error messages
+        
+        if (errorData.error) {
+            // General error like 'Invalid credentials'
+            // Show it in the _general banner at top of form
+            setFormErrors({
+                _general: { _errors: [errorData.error] }
+            });
+
+        } else if (errorData.errors) {
+            // Field specific errors
             const newErrors = {};
-            setShakeButton(p => p + 1);
-
-
-
-            if (error.status === 400 && errorData) {
-                // Case 1: Handle general, non-field errors (like "wrong password")
-                if (errorData.non_field_errors) {
-                    newErrors._general = { _errors: errorData.non_field_errors };
-                }
-
-                // Case 2: Handle specific field validation errors (e.g., "invalid email format")
-                // This part of your original code was good, let's keep it.
-                if (errorData.errors && Array.isArray(errorData.errors)) {
-                    for (const err of errorData.errors) {
-                        newErrors[err.param] = { _errors: [err.message] };
-                    }
-                } else {
-                    for (const key in errorData) {
-                        if (key !== 'non_field_errors' && Array.isArray(errorData[key])) {
-                            newErrors[key] = { _errors: errorData[key] };
-                        }
-                    }
-                }
-
-                setFormErrors(newErrors);
-
-            } else {
-                // This handles server errors (500) or network issues
-                showNotification(error.data?.detail || 'An unknown error occurred.', 'error');
+            for (const key in errorData.errors) {
+                newErrors[key] = { _errors: errorData.errors[key] };
             }
-        } finally {
-            setSubmitStatus('idle');
+            setFormErrors(newErrors);
+
+        } else {
+            showNotification('An unknown error occurred.', 'error');
         }
+
+    } else {
+        // 500 or network error
+        showNotification(
+            errorData.error || 'Something went wrong. Please try again.',
+            'error'
+        );
+    }
+} finally {
+    setSubmitStatus('idle');
+}
     };
 
     return (
@@ -146,6 +146,30 @@ export default function LoginPage() {
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Welcome Back</h2>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Log in to access your dashboard.</p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        window.location.href = 'https://github.com/login/oauth/authorize?client_id=Iv23lisg4lKqAlS3Ox26&scope=repo,user'
+                    }}
+                    className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border border-slate-700
+               bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold
+               shadow-md shadow-black/20 hover:bg-slate-800 dark:hover:bg-slate-100
+               hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/20
+               transition-all duration-300 ease-in-out"
+                >
+                    <AiFillGithub className="w-6 h-6" />
+                    <span>Continue with GitHub</span>
+                </button>
+
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200 dark:border-slate-700" />
+                    </div>
+                    <div className="relative flex justify-center text-sm uppercase tracking-widest text-slate-400">
+                        <span className="px-3 bg-white dark:bg-slate-800">Or email</span>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>

@@ -1,15 +1,13 @@
 // src/pages/EmailVerificationPage.jsx
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiLoader, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 
-// --- ESSENTIAL REFINEMENT 1: Import the central auth store ---
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
 import { apiFetch } from '../lib/api';
-import { useCsrfToken } from '../hooks/useCsrfToken';
 
 const Spinner = () => (
     <motion.div
@@ -21,71 +19,51 @@ const Spinner = () => (
     </motion.div>
 );
 
-// --- ESSENTIAL REFINEMENT 1: The 'onLoginSuccess' prop is removed ---
 export default function EmailVerificationPage() {
     const [verificationStatus, setVerificationStatus] = useState('verifying');
-    const { key } = useParams();
+    const [searchParams] = useSearchParams()
+    const token = searchParams.get('token');
     const navigate = useNavigate();
     const showNotification = useNotificationStore((state) => state.showNotification);
     const [errorMessage, setErrorMessage] = useState("The verification link is invalid, has expired, or was already used.");
-    const { csrfToken, isCsrfLoading } = useCsrfToken();
 
-    // --- ESSENTIAL REFINEMENT 1: Get the 'login' function from our store ---
     const login = useAuthStore((state) => state.login);
 
     useEffect(() => {
-        if (!key) {
+        console.log('token is:', token);
+        if (!token) {
             setVerificationStatus('error');
-            return;
-        }
-
-        if (isCsrfLoading) {
             return;
         }
 
         const verifyEmailKey = async () => {
             try {
-                const payload = new URLSearchParams();
-                payload.append('key', key);
-               payload.append('csrfmiddlewaretoken', csrfToken);
-                // 1. Use our robust, centralized apiFetch wrapper.
-                //    It handles the URL, headers, and body stringification.
-                const data = await apiFetch('/_allauth/browser/v1/auth/email/verify', {
+                const data = await apiFetch('/api/verify-email', {
                     method: 'POST',
-                    body: payload,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({token}),
                 });
 
-                // 2. The success logic for a 200 OK response.
-                //    apiFetch automatically throws for non-ok responses, so we don't need to check response.status here.
+                console.log(data)
                 setVerificationStatus('success');
-                login(data, true); // Use the central login function.
+                login(data, false); 
                 showNotification(`Welcome! Your email has been verified.`, 'success');
                 setTimeout(() => {
-                    navigate('/'); // Redirect to home/dashboard
+                    navigate('/dashboard'); // Redirect to home/dashboard
                 }, 3000);
 
             } catch (error) {
-                // 3. This catch block now handles errors from apiFetch.
-                if (error.status === 401) {
-                    // This is the special "just verify" success case.
-                    setVerificationStatus('success');
-                    showNotification('Your email has been successfully verified! Please log in.', 'success');
-                    setTimeout(() => {
-                        navigate('/login'); // Redirect to login page
-                    }, 3000);
-                } else {
-                    // This handles all other errors (e.g., 400 for an invalid key).
-                    setErrorMessage(error.data?.detail || "The verification link is invalid, has expired, or was already used.");
-                    setVerificationStatus('error');
-                }
+                setErrorMessage(error.data?.error || "The verification link is invalid, has expired, or was already used.");                setVerificationStatus('error');
+                
             }
         };
 
         const timer = setTimeout(verifyEmailKey, 200);
 
         return () => clearTimeout(timer);
-        // --- ESSENTIAL REFINEMENT 1: Update the dependency array ---
-    }, [key, navigate, showNotification, login, csrfToken, isCsrfLoading]);
+    }, [token, navigate, showNotification, login]);
 
     const renderContent = () => {
         switch (verificationStatus) {

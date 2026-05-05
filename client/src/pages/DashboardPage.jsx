@@ -13,6 +13,7 @@ import AiSuggestions from '../components/AiSuggestions';
 import Milestones from '../components/Milestones';
 import DateRangePicker from '../components/DateRangePicker'; // Assuming this is now in its own file
 import useNotificationStore from '../stores/useNotificationStore'; // 
+import useAuthStore from '../stores/useAuthStore';
 
 
 // --- MOCK DATA IS NOW RESTORED HERE ---
@@ -31,9 +32,10 @@ const MOCK_SESSIONS = [
     { date: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(), duration: 110, keystrokes: 12000, linesAdded: 250, language: 'Python', project: 'Data-Script' },
 ];
 
-export default function DashboardPage({ user, errorHandler }) { // The `allSessions` prop is no longer needed
+export default function DashboardPage({ errorHandler }) { // The `allSessions` prop is no longer needed
     const [dateRange, setDateRange] = useState('This Week');
     const [filteredData, setFilteredData] = useState([]);
+    const user = useAuthStore((state) => state.user)
 
     const showNotification = useNotificationStore((state) => state.showNotification);
 
@@ -67,10 +69,21 @@ export default function DashboardPage({ user, errorHandler }) { // The `allSessi
     return (
         <motion.main /* ... */>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {user && !user.isVerified && (
+    <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
+        <p>⚠️ Your email is not verified. Please check your inbox or request a new link.</p>
+        <Link 
+            to="/resend-verification"
+            className="flex-shrink-0 font-semibold underline hover:text-yellow-600"
+        >
+            Resend link
+        </Link>
+    </div>
+)}
                 <header className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-                            Welcome back, {user?.fullName?.split(' ')[0] || 'Guest'}
+                            Welcome, {user?.profile?.fullName?.split(' ')[0] || user?.username || 'Guest'}
                         </h1>
                         <p className="mt-1 text-md text-slate-500 dark:text-slate-400">
                             Here's your coding activity overview.

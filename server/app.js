@@ -8,6 +8,9 @@ const middleware = require('./utils/middleware')
 const loginRouter = require('./controllers/login')
 const verifyRouter = require('./controllers/verifyextension')
 const githubAuthRouter = require('./controllers/githubAuth')
+const verifyEmailRouter = require('./controllers/verifyEmail')
+const resendVerificationRouter = require('./controllers/resendVerification')
+
 require('dotenv').config();
 
 const app = express();
@@ -32,5 +35,7 @@ app.use('/api/signup', userRouter)
 app.use('/api/verify', verifyRouter)
 app.use('/api/login', loginRouter)
 app.use('/api/auth/github', githubAuthRouter)
+app.use('/api/verify-email', verifyEmailRouter)
+app.use('/api/resend-verification', resendVerificationRouter)
 app.use(middleware.errorHandler)
 module.exports = app

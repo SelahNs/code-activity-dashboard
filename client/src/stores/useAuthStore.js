@@ -1,109 +1,63 @@
-// src/stores/useAuthStore.js
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { dynamicStorage } from '../lib/storage'; // Import our custom storage manager
-import { apiClient } from '../lib/api';
-import { email } from 'zod';
+import { dynamicStorage } from '../lib/storage';
 
 const useAuthStore = create(
   persist(
     (set, get) => ({
+
       // --- STATE ---
+      // Single source of truth for user data
       user: null,
       accessToken: null,
       refreshToken: null,
 
-      profile: {
-        fullName: '',
-        username: '',
-        email: '',
-        avatarUrl:''
-      },
-
-      // --- COMPUTED PROPERTIES (GETTERS) ---
-      isAuthenticated: () => get().accessToken !== null,
-
-      setTokens: (newAccessToken, newRefreshToken) => {
-        set({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-      },
-      updateGlobalProfile: (newProfileData) => {
-        set(state => ({
-          profile: {
-            ...state.profile,
-            fullName: newProfileData.user.full_name,
-            avatarUrl: newProfileData.avatar_url,
-          }
-        }));
-      },
-
       // --- ACTIONS ---
-      // The 'login' action now accepts the 'rememberMe' boolean to determine storage type.
-      login: async (loginAPIResponse, rememberMe) => {
+      login: (loginAPIResponse, rememberMe) => {
+        // Set storage preference FIRST
+        dynamicStorage.useLocalStorage = rememberMe;
 
-        try {
-          // IMPORTANT: Set the storage preference *before* setting the state.
-          // This tells our custom storage manager where to save the upcoming data.
-          dynamicStorage.useLocalStorage = rememberMe;
-
-          set({
-            user: loginAPIResponse.data.user,
-            accessToken: loginAPIResponse.meta.access_token,
-            refreshToken: loginAPIResponse.meta.refresh_token,
-          });
-
-          const profileData = await apiClient.getProfile();
-
-          set((state) => ({
-            fullName: profileData.user.full_name,
-            avatarUrl: profileData.avatar_url,
-          }));
-
-        } catch (error) {
-          console.error("Error during post-login profile fetch:", error);
-        }
-      },
-
-      // The 'logout' action clears all auth data from the state and storage.
-      logout: () => {
-        // Reset the storage preference on logout.
-        dynamicStorage.useLocalStorage = false;
+        // Save everything from login response
+        // No second API call needed — backend sends what we need
         set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-           profile: { fullName: '', avatarUrl: ''}
+          user: loginAPIResponse.data.user,
+          accessToken: loginAPIResponse.meta.access_token,
+          refreshToken: loginAPIResponse.meta.refresh_token,
         });
       },
-      fetchUserProfile: async () => {
-        try {
 
-          const profileData = await apiClient.getProfile();
-          console.log('Fetched profile data:', profileData);
-          set({ user: profileData });
-        } catch (error) {
-          console.log("Failed to fetch fresh user profile:", error);
-        }
+      logout: () => {
+    // Clear both storages completely
+    localStorage.removeItem('auth-storage');
+    sessionStorage.removeItem('auth-storage');
+    
+    // Reset storage preference
+    dynamicStorage.useLocalStorage = false;
+    
+    // Clear the state
+    set({
+        user: null,
+        accessToken: null,
+        refreshToken: null,
+    });
+},
+      // Used by token refresh in apiFetch
+      setTokens: (newAccessToken, newRefreshToken) => {
+        set({ 
+          accessToken: newAccessToken, 
+          refreshToken: newRefreshToken 
+        });
       },
 
-      updateUserProfile: async (profileUpdateData, avatarFile) => {
-        try {
-          const updatedProfile = await apiClient.updateProfile(profileUpdateData, avatarFile);
-          set({ user: updatedProfile });
+      // Called after user updates their profile
+      // Updates the user object in store with fresh data
+      updateUser: (updatedUser) => {
+        set({ user: updatedUser });
+      },
 
-          // Return a success signal to the component
-          return { success: true, data: updatedProfile };
-        } catch (error) {
-          console.error('Failed to update user profile:', error);
-          return { success: false, error: error.data || error };
-        }
-      }
     }),
     {
-      name: 'auth-storage', // The key name will be the same in both localStorage and sessionStorage.
-
-      // We tell the persist middleware to use our custom dynamic storage manager
-      // instead of the default localStorage.
+      name: 'auth-storage',
       storage: {
         getItem: dynamicStorage.getItem,
         setItem: dynamicStorage.setItem,

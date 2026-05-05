@@ -3,7 +3,8 @@ const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 const crypto = require('crypto');
-const {sendVerificationEmail} = require('../utils/email')
+const { sendVerificationEmail } = require('../utils/email')
+const jwt = require('jsonwebtoken');
 
 userRouter.post('/', async (request, response) => {
   const body = request.body;
@@ -22,7 +23,7 @@ userRouter.post('/', async (request, response) => {
   // NoSQL injection protection
   if (
     typeof username !== 'string' ||
-    typeof email    !== 'string' ||
+    typeof email !== 'string' ||
     typeof password !== 'string' ||
     (fullname && typeof fullname !== 'string')
   ) {
@@ -51,8 +52,8 @@ userRouter.post('/', async (request, response) => {
 
   try {
     // Check duplicates
-    const existingUser = await User.findOne({ 
-      $or: [{ username }, { email: validator.normalizeEmail(email) }] 
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email: validator.normalizeEmail(email) }]
     });
 
     if (existingUser) {
@@ -90,12 +91,40 @@ userRouter.post('/', async (request, response) => {
     await user.save();
 
     sendVerificationEmail(user.email, verificationToken, username)
-    .catch(error => {
-      console.error('Failed to send verification email:', error)
-    })
+      .catch(error => {
+        console.error('Failed to send verification email:', error);
+      });
+
+    // Generate tokens exactly like login does
+    const accessToken = jwt.sign(
+      { id: user.id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: '7d' }
+    );
 
     response.status(201).json({
-      message: 'Account created. Please check your email to verify your account.'
+      meta: {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          isVerified: user.isVerified,
+          profile: {
+            fullName: user.profile?.fullName || null,
+            avatarUrl: user.profile?.avatarUrl || null,
+          }
+        }
+      }
     });
 
   } catch (error) {

@@ -14,7 +14,7 @@ export default function Navbar({ user, onLogout }) {
     const currentPath = location.pathname;
 
     const mainNavLinks = [
-        { path: "/", label: "Dashboard" },
+        { path: "/dashboard", label: "Dashboard" },
         { path: "/projects", label: "Projects" },
         { path: "/reports", label: "Reports" },
         { path: "/focus", label: "Focus" },
