@@ -22,6 +22,7 @@ import useAuthStore from "./stores/useAuthStore";
 import useNotificationStore from "./stores/useNotificationStore";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import AuthSuccessPage from "./pages/AuthSuccessPage"
 
 // We'll build this next
 import LandingPage from "./pages/LandingPage";
@@ -66,9 +67,10 @@ export default function App() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/verify-email" element={<EmailVerificationPage />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                        <Route path="/forgot-password/:key" element={<ResetPasswordPage />} />
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/resend-verification" element={<ResendVerificationPage />} />
                         <Route path="/showcase" element={<ShowcasePage />} />
+                        <Route path="/auth-success" element={<AuthSuccessPage />} />
 
                     </Routes>
                 </AnimatePresence>

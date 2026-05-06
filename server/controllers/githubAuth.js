@@ -10,7 +10,6 @@ githubAuthRouter.get('/callback', async (request, response) => {
   console.log('cleintId:', clientID)
   const code = request.query.code;
   const installationId = request.query.installation_id
-  const url = 'http://localhost:5173/auth-success?token='
   let access_token;
   try {
     const githubResponse = await fetch('https://github.com/login/oauth/access_token', {
@@ -47,9 +46,10 @@ githubAuthRouter.get('/callback', async (request, response) => {
     if (request.user) {
       //const thisUser = await User.findOne({_id: request.user.id})
       let updateData ={ $set: {
-          "github.id": userData.id,
-          "github.username": userData.login
-        },
+        "github.id": userData.id,
+        "github.username": userData.login,
+        isVerified: true    
+      },
         $addToSet: {}
       }
       // exmaple of github response 
@@ -82,17 +82,41 @@ githubAuthRouter.get('/callback', async (request, response) => {
         let updateData = { 
           $set: {
             "github.id": userData.id,
-            "github.username": userData.login
+            "github.username": userData.login,
+            isVerified: true
           },
           $addToSet: {}
         }
         if (installationId) {
         updateData.$addToSet['github.installationId'] = installationId;
-      }
-      await User.updateOne({_id: foundUser.id}, updateData)
-      const payload = {username: foundUser.username, id: foundUser.id}
-      const token = jwt.sign(payload, process.env.SECRET, {expiresIn: 60*60*24})
-      return response.redirect(url+token)
+        }
+        await User.updateOne({_id: foundUser._id}, updateData)
+      // ✅ new way — two tokens, right secrets
+const accessToken = jwt.sign(
+    { id: foundUser._id },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: '1h' }
+);
+
+const refreshToken = jwt.sign(
+    { id: foundUser._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: '7d' }
+);
+const userPayload = encodeURIComponent(JSON.stringify({
+    id: foundUser._id,
+    username: foundUser.username,
+    email: foundUser.email,
+    isVerified: foundUser.isVerified,
+    profile: {
+        fullName: foundUser.profile?.fullName || null,
+        avatarUrl: foundUser.profile?.avatarUrl || null,
+    }
+}));
+
+return response.redirect(
+    `http://localhost:5173/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
+);
       } else {
         const res = await fetch('https://api.github.com/user/emails', {
           method: 'GET',
@@ -107,15 +131,19 @@ githubAuthRouter.get('/callback', async (request, response) => {
         const primaryEmailObj = emails.find(e => e.primary && e.verified)
         const finalEmail = primaryEmailObj ? primaryEmailObj.email : null;
         let user = null;
-        if (finalEmail) {
-           user = await User.findOne({email: finalEmail})
-        } 
+        if (!finalEmail) {
+          return response.redirect('http://localhost:5173/login?error=no_email');
+        }
+
+        user = await User.findOne({email: finalEmail})
+
         let newUser;
         if(user) {
           let updateData = { 
             $set: {
               "github.id": userData.id,
-              "github.username": userData.login
+              "github.username": userData.login,
+              isVerified: true
             },
             $addToSet: {}
           }
@@ -133,7 +161,8 @@ githubAuthRouter.get('/callback', async (request, response) => {
           }
           newUser = await User.create({
             username: finalUsername, 
-            email: finalEmail,       
+            email: finalEmail,
+            isVerified: true,   
             github: {
               id: userData.id,
               username: userData.login,
@@ -153,9 +182,32 @@ githubAuthRouter.get('/callback', async (request, response) => {
           })
 
         }
-        const payload = { username: newUser.username, id: newUser._id };
-        const token = jwt.sign(payload, process.env.SECRET, { expiresIn: 60*60*24 });
-        return response.redirect(url + token);
+    const accessToken = jwt.sign(
+        { id: newUser._id },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: '1h' }
+    );
+
+    const refreshToken = jwt.sign(
+        { id: newUser._id },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: '7d' }
+    );
+
+    const userPayload = encodeURIComponent(JSON.stringify({
+    id: newUser._id,
+    username: newUser.username,
+    email: newUser.email,
+    isVerified: newUser.isVerified,
+    profile: {
+        fullName: newUser.profile?.fullName || null,
+        avatarUrl: newUser.profile?.avatarUrl || null,
+    }
+}));
+
+return response.redirect(
+    `http://localhost:5173/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
+);
     }
     }
 

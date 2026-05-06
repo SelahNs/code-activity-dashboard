@@ -10,6 +10,9 @@ const verifyRouter = require('./controllers/verifyextension')
 const githubAuthRouter = require('./controllers/githubAuth')
 const verifyEmailRouter = require('./controllers/verifyEmail')
 const resendVerificationRouter = require('./controllers/resendVerification')
+const refreshTokenRouter = require('./controllers/refreshToken')
+const forgotPasswordRouter = require('./controllers/forgotPassword');
+const resetPasswordRouter = require('./controllers/resetPassword');
 
 require('dotenv').config();
 
@@ -37,5 +40,8 @@ app.use('/api/login', loginRouter)
 app.use('/api/auth/github', githubAuthRouter)
 app.use('/api/verify-email', verifyEmailRouter)
 app.use('/api/resend-verification', resendVerificationRouter)
+app.use('/api/token/refresh', refreshTokenRouter)
+app.use('/api/forgot-password', forgotPasswordRouter);
+app.use('/api/reset-password', resetPasswordRouter);
 app.use(middleware.errorHandler)
 module.exports = app

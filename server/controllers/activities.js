@@ -72,8 +72,73 @@ activitiesRouter.post('/', async (request, response) => {
       updateInstruction.$inc[`skills.editors.${keyword}`] = value
     })
 
-    await User.findByIdAndUpdate(user.id, updateInstruction)
+    const updatedUser = await User.findByIdAndUpdate(
+    user.id,
+    updateInstruction,
+    { new: true }
+);
+
+// --- Calculate everything first ---
+
+// 1. Human cyborg ratio
+const newRatio = updatedUser.stats.totalCharsAdded === 0
+    ? 1
+    : updatedUser.stats.totalKeystrokes / updatedUser.stats.totalCharsAdded;
+
+// 2. Streak
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const lastActive = updatedUser.lastActiveDate
+    ? new Date(
+        updatedUser.lastActiveDate.getFullYear(),
+        updatedUser.lastActiveDate.getMonth(),
+        updatedUser.lastActiveDate.getDate()
+    )
+    : null;
+
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
+
+let newCurrentStreak = updatedUser.stats.currentStreak;
+let newLongestStreak = updatedUser.stats.longestStreak;
+
+if (!lastActive) {
+    newCurrentStreak = 1;
+} else if (lastActive.getTime() === today.getTime()) {
+    // already coded today, no change
+} else if (lastActive.getTime() === yesterday.getTime()) {
+    newCurrentStreak = updatedUser.stats.currentStreak + 1;
+    newLongestStreak = Math.max(newCurrentStreak, updatedUser.stats.longestStreak);
+} else {
+    newCurrentStreak = 1;
+}
+
+// 3. XP and level
+const baseXP =
+    (totalSecondsBatch * 0.3) +
+    (totalLinesAdded * 1.5) +
+    (totalLinesDeleted * 0.8) +
+    (totalKeystrokes * 0.05);
+
+const streakBonus = newCurrentStreak * 5;
+const earnedXP = Math.round((baseXP + streakBonus) * newRatio);
+const newTotalXP = updatedUser.stats.xp + earnedXP;
+const newLevel = Math.floor(Math.sqrt(newTotalXP / 100)) + 1;
+
+// --- One single $set for everything ---
+await User.findByIdAndUpdate(user.id, {
+    $set: {
+        'stats.humanCyborgRatio': newRatio,
+        'stats.currentStreak': newCurrentStreak,
+        'stats.longestStreak': newLongestStreak,
+        'stats.xp': newTotalXP,
+        'stats.level': newLevel,
+        'lastActiveDate': now
+    }
+});
+
     return response.status(201).json(sendActivities)
+
   } else {
     return response.status(401).json({error: 'unauthorized'})
   }

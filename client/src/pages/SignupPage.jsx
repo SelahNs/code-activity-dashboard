@@ -195,7 +195,6 @@ export default function SignupPage() {
                             >
                                 <AiFillGithub className="w-6 h-6" />
                                 <span>Continue with GitHub</span>
-                                <span className="text-xs font-normal opacity-60">(Recommended)</span>
                             </button>
 
                             <div className="relative my-6">

@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   verificationTokenExpires: Date,
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false
+  },
   profile: {
     fullName: {
       type: String,
@@ -179,6 +187,8 @@ userSchema.set('toJSON', {
     delete returnedObject.__v
     delete returnedObject.verificationToken
     delete returnedObject.apiSecret
+    delete returnedObject.resetPasswordToken
+    delete returnedObject.resetPasswordExpires
   }
 })
 

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheckCircle } from 'react-icons/fi';
 import { apiFetch } from '../lib/api';
 import useNotificationStore from '../stores/useNotificationStore';
-import { useCsrfToken } from '../hooks/useCsrfToken';
 
 // Re-using the FormError component for consistency with SignupPage
 const FormError = ({ message }) => (
@@ -28,7 +27,6 @@ export default function ForgotPasswordPage() {
     const [status, setStatus] = useState('idle'); // 'idle', 'loading', 'error'
     const [shakeButton, setShakeButton] = useState(0);
     const showNotification = useNotificationStore((state) => state.showNotification);
-    const { csrfToken, isCsrfLoading } = useCsrfToken();
 
 
     const handleSubmit = async (e) => {
@@ -49,14 +47,11 @@ export default function ForgotPasswordPage() {
 
         setStatus('loading');
         try {
-            const payload = new URLSearchParams();
-            payload.append('email', trimmedEmail);
-            payload.append('csrfmiddlewaretoken', csrfToken);
             
-            await apiFetch('/_allauth/browser/v1/auth/password/request', {
-                method: 'POST',
-                body: payload,
-            });
+            await apiFetch('/api/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email: trimmedEmail }),
+});
 
             setEmailSent(true);
 
@@ -121,9 +116,9 @@ export default function ForgotPasswordPage() {
                                 </div>
 
                                 <motion.div key={shakeButton} animate={{ x: [0, -8, 8, -6, 6, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } }}>
-                                    <button type="submit" disabled={isCsrfLoading || status === 'loading'}
+                                    <button type="submit" disabled={status === 'loading'}
                                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
-                                       {isCsrfLoading ? 'Connecting...' : (status === 'loading' ? 'Sending...' : 'Send Instructions')}
+                                       {status === 'loading' ? 'Sending...' : 'Send Instructions'}
                                     </button>
                                 </motion.div>
                             </form>

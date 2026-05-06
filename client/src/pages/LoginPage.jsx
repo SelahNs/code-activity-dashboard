@@ -1,7 +1,7 @@
 // src/pages/LoginPage.jsx
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link,useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginSchema } from '../lib/validation';
 import { apiFetch } from '../lib/api';
@@ -9,6 +9,7 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
 import { AiFillGithub } from 'react-icons/ai';
+
 
 const FormError = ({ message }) => (
     <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="mt-1 text-sm text-red-600">
@@ -27,7 +28,16 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
     const showNotification = useNotificationStore((state) => state.showNotification);
-    // const { csrfToken, isCsrfLoading } = useCsrfToken()
+
+    useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'no_email') {
+        showNotification(
+            'GitHub account has no verified email. Please add one on GitHub and try again.',
+            'error'
+        );
+    }
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
