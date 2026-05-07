@@ -31,6 +31,10 @@ githubAuthRouter.get('/callback', async (request, response) => {
     }
 
     access_token = data.access_token
+    // right after you get access_token from GitHub
+    await User.findByIdAndUpdate(foundUser._id, {
+        $set: { 'github.accessToken': access_token }
+    });
     const userResponse = await fetch('https://api.github.com/user', {
       method: 'GET',
       headers: {

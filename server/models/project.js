@@ -18,8 +18,13 @@ const projectSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'archived', 'in-progress'],
+        enum: ['active', 'completed', 'archived'],
         default: 'active'
+    },
+    previousStatus: {
+        type: String,
+        enum: ['active', 'completed'],
+        default: null
     },
     tags: [String],
     isPinned: {
@@ -64,6 +69,11 @@ const projectSchema = new mongoose.Schema({
         default: 0
     },
     lastActiveDate: Date,
+    visibility: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'private'  // safe default
+    }
 
 }, { timestamps: true });
 

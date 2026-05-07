@@ -13,6 +13,7 @@ const resendVerificationRouter = require('./controllers/resendVerification')
 const refreshTokenRouter = require('./controllers/refreshToken')
 const forgotPasswordRouter = require('./controllers/forgotPassword');
 const resetPasswordRouter = require('./controllers/resetPassword');
+const projectsRouter = require('./controllers/projects')
 
 require('dotenv').config();
 
@@ -43,5 +44,6 @@ app.use('/api/resend-verification', resendVerificationRouter)
 app.use('/api/token/refresh', refreshTokenRouter)
 app.use('/api/forgot-password', forgotPasswordRouter);
 app.use('/api/reset-password', resetPasswordRouter);
+app.use('/api/projects', projectsRouter)
 app.use(middleware.errorHandler)
 module.exports = app

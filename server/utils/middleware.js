@@ -21,7 +21,7 @@ const userExtractor = async (request, response, next) => {
     const mainToken = token.replace('Bearer ', '')
     let decodedToken = null;
     try {
-      decodedToken = jwt.verify(mainToken, process.env.SECRET)
+      decodedToken = jwt.verify(mainToken, process.env.ACCESS_TOKEN_SECRET)
     } catch (error) {
 
     }
@@ -29,7 +29,7 @@ const userExtractor = async (request, response, next) => {
       request.user = await User.findById(decodedToken.id)
     }
   } else if (key) {
-    request.user = await User.findOne({ apiSecret: key})
+    request.user = await User.findOne({ apiSecret: key}).select('+apiSecret')
   }
 
   next()

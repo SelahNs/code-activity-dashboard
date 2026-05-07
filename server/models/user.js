@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     select: false
   },
+  manuallyEdited: {
+    type: [String], // list of field names the user edited themselves
+    default: []
+  },
   profile: {
     fullName: {
       type: String,
@@ -174,7 +178,12 @@ const userSchema = new mongoose.Schema({
       sparse: true
     },
     installationId: [String],
-    username: String
+    username: String,
+    accessToken: {
+      type: String,
+      select: false
+    },
+    blockedRepoIds: [Number]
   }
   
 }, { timestamps: true})
