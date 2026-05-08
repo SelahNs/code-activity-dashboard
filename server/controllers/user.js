@@ -39,8 +39,8 @@ userRouter.post('/', async (request, response) => {
   if (!validator.isLength(username, { min: 3, max: 20 })) {
     errors.username = ['Username must be between 3 and 20 characters'];
   }
-  if (!validator.isAlphanumeric(username)) {
-    errors.username = ['Username can only contain letters and numbers'];
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    errors.username = ['Username can only contain letters, numbers, underscores and hyphens'];
   }
   if (password.length < 8) {
     errors.password = ['Password must be at least 8 characters'];

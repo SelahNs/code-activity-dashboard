@@ -56,26 +56,6 @@ githubAuthRouter.get('/callback', async (request, response) => {
       },
         $addToSet: {}
       }
-      // exmaple of github response 
-      //    {
-      //   "login": "octocat",
-      //   "id": 583231,
-      //   "node_id": "MDQ6VXNlcjU4MzIzMQ==",
-      //   "avatar_url": "https://github.com/images/error/octocat_happy.gif",
-      //   "html_url": "https://github.com/octocat",
-      //   "type": "User",
-      //   "name": "The Octocat",
-      //   "company": "GitHub",
-      //   "blog": "https://github.com/blog",
-      //   "location": "San Francisco",
-      //   "email": "octocat@github.com",
-      //   "bio": "There once was...",
-      //   "public_repos": 2,
-      //   "followers": 20,
-      //   "created_at": "2011-01-25T18:44:53Z",
-      //   "updated_at": "2011-01-25T18:44:53Z"
-      // }
-      
       if (installationId) {
         updateData.$addToSet['github.installationId'] = installationId;
       }

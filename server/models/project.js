@@ -31,7 +31,10 @@ const projectSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-
+    manuallyEdited: {
+        type: [String],
+        default: []
+    },
     // GitHub — optional, filled on import
     github: {
         repoId: Number,
