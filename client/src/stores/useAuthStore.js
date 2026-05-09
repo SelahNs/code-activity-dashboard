@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dynamicStorage } from '../lib/storage';
+import socket from '../utils/socket';
 
 const useAuthStore = create(
   persist(
@@ -24,6 +25,9 @@ const useAuthStore = create(
           accessToken: loginAPIResponse.meta.access_token,
           refreshToken: loginAPIResponse.meta.refresh_token,
         });
+
+        socket.io.opts.query = {userId: loginAPIResponse.data.user.id}
+        socket.connect();
       },
 
       logout: () => {
@@ -40,6 +44,7 @@ const useAuthStore = create(
         accessToken: null,
         refreshToken: null,
     });
+    socket.disconnect();
 },
       // Used by token refresh in apiFetch
       setTokens: (newAccessToken, newRefreshToken) => {

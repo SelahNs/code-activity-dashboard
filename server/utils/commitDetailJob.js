@@ -1,14 +1,16 @@
 const Commit = require('../models/commit');
 const User = require('../models/user');
 
+let isRunning = false
+
 const fetchCommitDetails = async () => {
+    if (isRunning) return;
+    isRunning = true;
     try {
         // Get all users who have pending commits
-        const usersWithPending = await Commit.distinct('user', { 
-            detailsFetched: false 
+        const usersWithPending = await Commit.distinct('user', {
+            detailsFetched: false
         });
-
-        if (usersWithPending.length === 0) return;
 
         for (const userId of usersWithPending) {
             // Get this user's access token
@@ -36,8 +38,20 @@ const fetchCommitDetails = async () => {
                         }
                     );
 
-                    if (!detailResponse.ok) continue;
+                    if (!detailResponse.ok) {
+                        if (detailResponse.status === 403) {
+                            console.log(`User ${userId} rate limited, skipping`);
+                            break; // stop this user, move to next
+                        }
+                        continue;
+                    }
                     const detail = await detailResponse.json();
+
+                    const remaining = parseInt(detailResponse.headers.get('X-RateLimit-Remaining'));
+                    if (remaining < 100) {
+                        console.log(`User ${userId} rate limit low, stopping`);
+                        break; // stop processing this user's commits
+                    }
 
                     await Commit.findByIdAndUpdate(commit._id, {
                         $set: {
@@ -66,6 +80,8 @@ const fetchCommitDetails = async () => {
 
     } catch (error) {
         console.error('Commit detail job error:', error);
+    } finally {
+        isRunning = false;
     }
 };
 
