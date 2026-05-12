@@ -14,6 +14,7 @@ const refreshTokenRouter = require('./controllers/refreshToken')
 const forgotPasswordRouter = require('./controllers/forgotPassword');
 const resetPasswordRouter = require('./controllers/resetPassword');
 const projectsRouter = require('./controllers/projects')
+const webhookRouter = require('./controllers/webhook')
 
 require('dotenv').config();
 
@@ -45,5 +46,6 @@ app.use('/api/token/refresh', refreshTokenRouter)
 app.use('/api/forgot-password', forgotPasswordRouter);
 app.use('/api/reset-password', resetPasswordRouter);
 app.use('/api/projects', projectsRouter)
+app.use('/api/webhook', webhookRouter)
 app.use(middleware.errorHandler)
 module.exports = app

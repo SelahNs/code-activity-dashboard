@@ -1,3 +1,5 @@
+const mongoose = require('mongoose')
+
 const pullRequestSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +21,7 @@ const pullRequestSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-      role: {
+    role: {
       type: String,
       enum: ['author', 'owner']  // is our user the PR author or the repo owner?
     },
@@ -38,3 +40,5 @@ const pullRequestSchema = new mongoose.Schema({
     mergedAt: Date,
     closedAt: Date,
 }, { timestamps: true })
+
+module.exports = mongoose.model('PullRequest', pullRequestSchema)
