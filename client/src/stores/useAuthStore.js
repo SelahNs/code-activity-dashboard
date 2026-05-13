@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dynamicStorage } from '../lib/storage';
 import socket from '../utils/socket';
+import useUserStore from './useUserStore'
 
 const useAuthStore = create(
   persist(
@@ -33,18 +34,15 @@ const useAuthStore = create(
       logout: () => {
     // Clear both storages completely
     localStorage.removeItem('auth-storage');
-    sessionStorage.removeItem('auth-storage');
-    
-    // Reset storage preference
+    sessionStorage.removeItem('auth-storage');    
     dynamicStorage.useLocalStorage = false;
-    
-    // Clear the state
     set({
         user: null,
         accessToken: null,
         refreshToken: null,
     });
     socket.disconnect();
+    useUserStore.getState().clearUser()
 },
       // Used by token refresh in apiFetch
       setTokens: (newAccessToken, newRefreshToken) => {
