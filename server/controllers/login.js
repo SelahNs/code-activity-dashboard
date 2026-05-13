@@ -3,6 +3,7 @@ loginRouter = require('express').Router()
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const validator= require('validator')
+const {githubFastQueue} = require('../utils/queue')
 
 loginRouter.post('/', async (request, response) => {
   console.log('Incoming Request Body:',  request.body)
@@ -28,11 +29,18 @@ loginRouter.post('/', async (request, response) => {
   try {
     const user = await User.findOne({
       $or: [ ...(username ? [{ username }]: []), ...(email? [{email: validator.normalizeEmail(email)}] : [] )]
-    }).select('+passwordHash');
+    }).select('+passwordHash +github.accessToken');
 
     const passwordCorrect = user === null ? false : await bcrypt.compare(password, user.passwordHash)
     if (!(user && passwordCorrect)){
       return response.status(401).send({error: 'Invalid credentials'})
+    }
+    if (user.github?.accessToken) {
+    await githubFastQueue.add({
+        userId: user._id,
+        accessToken: user.github.accessToken,
+        githubUsername: user.github.username
+    })
     }
     const accessToken = jwt.sign(
   { id: user.id },

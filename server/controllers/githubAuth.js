@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const User = require('../models/user')
 const clientID = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
-const { githubSyncQueue} = require('../utils/queue')
+const { githubFastQueue } = require('../utils/queue')
 
 githubAuthRouter.get('/callback', async (request, response) => {
     const code = request.query.code;
@@ -67,7 +67,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
             }
 
             await User.updateOne({ _id: request.user.id }, updateData);
-            await githubSyncQueue.add({userId: request.user.id,accessToken: access_token, githubUsername: userData.login});
+            await githubFastQueue.add({userId: request.user.id,accessToken: access_token, githubUsername: userData.login});
             return response.redirect('http://localhost:5173/settings?status=linked');
         }
 
@@ -95,7 +95,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
             }
 
             await User.updateOne({ _id: foundUser._id }, updateData);
-            await githubSyncQueue.add({userId: foundUser._id, accessToken: access_token, githubUsername: userData.login});
+            await githubFastQueue.add({userId: foundUser._id, accessToken: access_token, githubUsername: userData.login});
 
             const accessToken = jwt.sign(
                 { id: foundUser._id },
@@ -199,7 +199,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
             });
         }
 
-        await githubSyncQueue.add({userId: newUser._id, accessToken: access_token, githubUsername: userData.login});
+        await githubFastQueue.add({userId: newUser._id, accessToken: access_token, githubUsername: userData.login});
 
         const accessToken = jwt.sign(
             { id: newUser._id },
