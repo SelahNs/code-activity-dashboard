@@ -1,85 +1,127 @@
 // src/pages/DashboardPage.jsx
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { FiPlus, FiCalendar } from 'react-icons/fi';
-import StatCard from '../components/StatCard';
-import ProductivityChart from '../components/ProductivityChart';
-import PerformanceSummary from '../components/PerformanceSummary';
-import LiveSession from '../components/LiveSession';
-import ActiveProjects from '../components/ActiveProjects';
-import RecentActivity from '../components/RecentActivity';
-import AiSuggestions from '../components/AiSuggestions';
-import Milestones from '../components/Milestones';
-import DateRangePicker from '../components/DateRangePicker'; // Assuming this is now in its own file
-import useNotificationStore from '../stores/useNotificationStore'; // 
-import useAuthStore from '../stores/useAuthStore';
+import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+import { FiPlus, FiClock, FiZap, FiTrendingUp, FiCpu } from 'react-icons/fi'
 
+import StatCard from '../components/StatCard'
+import ProductivityChart from '../components/ProductivityChart'
+import LanguagePieChart from '../components/LanguagePieChart'
+import LiveSession from '../components/LiveSession'
+import ActiveProjects from '../components/ActiveProjects'
+import RecentActivity from '../components/RecentActivity'
+import AiSuggestions from '../components/AiSuggestions'
+import Milestones from '../components/Milestones'
+import DateRangePicker from '../components/DateRangePicker'
 
-// --- MOCK DATA IS NOW RESTORED HERE ---
-// This data is structured to test our filter logic.
-const MOCK_SESSIONS = [
-    // Last few days (for "This Week")
-    { date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString(), duration: 125, keystrokes: 15000, linesAdded: 350, language: 'JavaScript', project: 'Dashboard-UI' },
-    { date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), duration: 180, keystrokes: 22000, linesAdded: 500, language: 'React', project: 'Dashboard-UI' },
-    { date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString(), duration: 90, keystrokes: 8000, linesAdded: 150, language: 'CSS', project: 'Marketing-Site' },
-    // Last week
-    { date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(), duration: 240, keystrokes: 30000, linesAdded: 700, language: 'JavaScript', project: 'API-Service' },
-    { date: new Date(new Date().setDate(new Date().getDate() - 6)).toISOString(), duration: 60, keystrokes: 5000, linesAdded: 80, language: 'Python', project: 'Data-Script' },
-    // Last month
-    { date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(), duration: 150, keystrokes: 18000, linesAdded: 400, language: 'React', project: 'Dashboard-UI' },
-    { date: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString(), duration: 200, keystrokes: 25000, linesAdded: 600, language: 'JavaScript', project: 'API-Service' },
-    { date: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(), duration: 110, keystrokes: 12000, linesAdded: 250, language: 'Python', project: 'Data-Script' },
-];
+import useAuthStore from '../stores/useAuthStore'
+import useUserStore from '../stores/useUserStore'
+import { authApiFetch } from '../lib/api'
+import socket from '../utils/socket'
 
-export default function DashboardPage({ errorHandler }) { // The `allSessions` prop is no longer needed
-    const [dateRange, setDateRange] = useState('This Week');
-    const [filteredData, setFilteredData] = useState([]);
+// --- Helpers ---
+
+// Converts a dateRange label to { from, to } Date objects
+const getRangeDates = (dateRange) => {
+    const now = new Date()
+    const to = now.toISOString()
+    let from
+
+    if (dateRange === 'This Week') {
+        const d = new Date()
+        d.setDate(d.getDate() - 7)
+        from = d.toISOString()
+    } else if (dateRange === 'This Month') {
+        const d = new Date()
+        d.setDate(d.getDate() - 30)
+        from = d.toISOString()
+    } else {
+        // All Time — no from filter needed, send empty string
+        from = null
+    }
+
+    return { from, to }
+}
+
+const formatHours = (seconds) => {
+    if (!seconds) return '0h'
+    const h = seconds / 3600
+    return h < 10 ? `${h.toFixed(1)}h` : `${Math.round(h)}h`
+}
+
+const formatRatio = (ratio) => {
+    if (ratio === null || ratio === undefined) return '—'
+    return Math.round(ratio * 100) + '%'
+}
+
+// ---
+
+export default function DashboardPage() {
+    const [dateRange, setDateRange] = useState('This Week')
+    const [activities, setActivities] = useState([])
+    const [activitiesLoading, setActivitiesLoading] = useState(true)
+
     const user = useAuthStore((state) => state.user)
+    const { userData, isLoading: userLoading, fetchUser } = useUserStore()
 
-    const showNotification = useNotificationStore((state) => state.showNotification);
+    // Fetch activities whenever the date range changes
+    const fetchActivities = useCallback(async () => {
+        setActivitiesLoading(true)
+        try {
+            const { from, to } = getRangeDates(dateRange)
+            const params = new URLSearchParams()
+            if (from) params.append('from', from)
+            params.append('to', to)
+            const data = await authApiFetch(`/api/activities?${params.toString()}`)
+            // Map capturedAt → date so ProductivityChart works without changes
+            setActivities(data.map(a => ({ ...a, date: a.capturedAt })))
+        } catch (e) {
+            console.error('Failed to fetch activities:', e)
+            setActivities([])
+        } finally {
+            setActivitiesLoading(false)
+        }
+    }, [dateRange])
 
     useEffect(() => {
-        const now = new Date();
-        // The filter logic now uses our MOCK_SESSIONS constant
-        const filterData = (sessions) => {
-            return sessions.filter(session => {
-                const sessionDate = new Date(session.date);
-                if (dateRange === 'This Week') {
-                    // Get the date for 7 days ago
-                    const oneWeekAgo = new Date();
-                    oneWeekAgo.setDate(now.getDate() - 7);
-                    return sessionDate >= oneWeekAgo;
-                }
-                if (dateRange === 'This Month') {
-                    // Get the date for 30 days ago for simplicity
-                    const oneMonthAgo = new Date();
-                    oneMonthAgo.setDate(now.getDate() - 30);
-                    return sessionDate >= oneMonthAgo;
-                }
-                // 'All Time'
-                return true;
-            }, [...sessions]);
-        };
+        fetchUser()
+        fetchActivities()
+    }, [fetchActivities])
 
-        setFilteredData(filterData(MOCK_SESSIONS));
+    // When GitHub sync completes, refresh both user stats and activities
+    useEffect(() => {
+        const handleSyncComplete = () => {
+            fetchUser()
+            fetchActivities()
+        }
+        socket.on('sync:complete', handleSyncComplete)
+        return () => socket.off('sync:complete', handleSyncComplete)
+    }, [fetchActivities])
 
-    }, [dateRange]); // Rerun only when the range changes
+    const stats = userData?.stats
 
     return (
-        <motion.main /* ... */>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {user && !user.isVerified && (
-    <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
-        <p>⚠️ Your email is not verified. Please check your inbox or request a new link.</p>
-        <Link 
-            to="/resend-verification"
-            className="flex-shrink-0 font-semibold underline hover:text-yellow-600"
+        <motion.main
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
         >
-            Resend link
-        </Link>
-    </div>
-)}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                {/* Email verification banner */}
+                {user && !user.isVerified && (
+                    <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
+                        <p>⚠️ Your email is not verified. Please check your inbox or request a new link.</p>
+                        <Link
+                            to="/resend-verification"
+                            className="flex-shrink-0 font-semibold underline hover:text-yellow-600"
+                        >
+                            Resend link
+                        </Link>
+                    </div>
+                )}
+
+                {/* Header */}
                 <header className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
@@ -91,44 +133,84 @@ export default function DashboardPage({ errorHandler }) { // The `allSessions` p
                     </div>
                     <div className="flex-shrink-0 flex items-center gap-3 w-full sm:w-auto">
                         <DateRangePicker selectedRange={dateRange} onRangeChange={setDateRange} />
-                        <Link to="/projects/new" className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-all">
+                        <Link
+                            to="/projects/new"
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 transition-all"
+                        >
                             <FiPlus className="w-4 h-4" />
                             <span>New Project</span>
                         </Link>
-                       
                     </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {/* --- MAIN CONTENT --- */}
+
+                    {/* MAIN CONTENT */}
                     <div className="lg:col-span-3 space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <StatCard sessions={filteredData} title={"Hours Coded"} dataKey={'duration'} />
-                            <StatCard sessions={filteredData} title={"Keystrokes"} dataKey={'keystrokes'} />
-                            <StatCard sessions={filteredData} title={"Lines of Code"} dataKey={'linesAdded'} />
+
+                        {/* Stat Cards — all-time totals from userData */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatCard
+                                title="Hours Coded"
+                                value={userLoading ? '...' : formatHours(stats?.totalSecondsCoded)}
+                                subtitle="All time"
+                                icon={<FiClock className="w-4 h-4" />}
+                                color="blue"
+                            />
+                            <StatCard
+                                title="Current Streak"
+                                value={userLoading ? '...' : `${stats?.currentStreak ?? 0}d`}
+                                subtitle={`Best: ${stats?.longestStreak ?? 0} days`}
+                                icon={<FiTrendingUp className="w-4 h-4" />}
+                                color="amber"
+                            />
+                            <StatCard
+                                title="Level"
+                                value={userLoading ? '...' : `Lv ${stats?.level ?? 1}`}
+                                subtitle={`${stats?.xp ?? 0} XP`}
+                                icon={<FiZap className="w-4 h-4" />}
+                                color="purple"
+                            />
+                            <StatCard
+                                title="Human Ratio"
+                                value={userLoading ? '...' : formatRatio(stats?.humanCyborgRatio)}
+                                subtitle="Keystrokes vs AI"
+                                icon={<FiCpu className="w-4 h-4" />}
+                                color="emerald"
+                            />
                         </div>
+
+                        {/* Activity Chart — filtered by date range */}
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Coding Activity Trend</h3>
+                                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">
+                                    Coding Activity
+                                </h3>
                             </div>
-                            <div className="p-4 h-96">
-                                <ProductivityChart sessions={filteredData} />
+                            <div className="p-4 h-72">
+                                {activitiesLoading ? (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <p className="text-sm text-slate-400">Loading chart...</p>
+                                    </div>
+                                ) : (
+                                    <ProductivityChart sessions={activities} dataKey="duration" />
+                                )}
                             </div>
                         </div>
-                        <PerformanceSummary sessions={filteredData} />
+
+                        <LanguagePieChart languageMap={userData?.skills?.languages || {}} />
                         <AiSuggestions />
                     </div>
 
-                    {/* --- SIDEBAR --- */}
+                    {/* SIDEBAR */}
                     <div className="lg:col-span-2 space-y-6">
                         <LiveSession />
                         <ActiveProjects />
                         <RecentActivity />
-                        {/* We pass all the data to Milestones so it can calculate all-time bests */}
-                        <Milestones allSessions={MOCK_SESSIONS} />
+                        <Milestones allSessions={[]} />
                     </div>
                 </div>
             </div>
         </motion.main>
-    );
+    )
 }

@@ -3,8 +3,20 @@ const Activity = require('../models/activity')
 const User = require('../models/user')
 
 activitiesRouter.get('/', async (request, response) => {
-  const activities = await Activity.find({})
-  response.json(activities);
+    const user = request.user
+    if (!user) return response.status(401).json({ error: 'unauthorized' })
+
+    const { from, to } = request.query
+    const filter = { user: user._id }
+
+    if (from || to) {
+        filter.capturedAt = {}
+        if (from) filter.capturedAt.$gte = new Date(from)
+        if (to) filter.capturedAt.$lte = new Date(to)
+    }
+
+    const activities = await Activity.find(filter).sort({ capturedAt: -1 })
+    response.json(activities)
 })
 
 activitiesRouter.post('/', async (request, response) => {

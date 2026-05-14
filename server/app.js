@@ -17,6 +17,7 @@ const projectsRouter = require('./controllers/projects')
 const webhookRouter = require('./controllers/webhook')
 const usersRouter = require('./controllers/profile')
 const reposRouter = require('./controllers/repos')
+const commitsRouter = require('./controllers/commits')
 
 require('dotenv').config();
 
@@ -51,5 +52,6 @@ app.use('/api/projects', projectsRouter)
 app.use('/api/webhook', webhookRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/repos', reposRouter)
+app.use('/api/commits', commitsRouter)
 app.use(middleware.errorHandler)
 module.exports = app
