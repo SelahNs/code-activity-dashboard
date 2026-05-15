@@ -143,4 +143,5 @@ export const apiClient = {
         method: 'PATCH'
     }),
     getRepos: () => authApiFetch('/api/repos'),
+    getGithubStats: () => authApiFetch(`/api/stats/github`),
 }

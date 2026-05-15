@@ -65,13 +65,17 @@ if (profileRes.ok) {
                         new Date(repo.pushed_at) > new Date(repoDoc.pushedAt);
 
                     let readme = repoDoc?.readme || null;
+                   let languageBytes = {}
                     if (hasNewPushes) {
                         try {
-                            const readmeRes = await fetch(
-                                `https://api.github.com/repos/${repo.full_name}/readme`,
-                                { headers: { ...GITHUB_HEADERS(accessToken), 'Accept': 'application/vnd.github.raw' } }
-                            );
-                            if (readmeRes.ok) readme = await readmeRes.text();
+                            const [readmeRes, langRes] = await Promise.all([
+                                fetch(`https://api.github.com/repos/${repo.full_name}/readme`,
+                                    { headers: { ...GITHUB_HEADERS(accessToken), 'Accept': 'application/vnd.github.raw' } }),
+                                fetch(`https://api.github.com/repos/${repo.full_name}/languages`,
+                                    { headers: GITHUB_HEADERS(accessToken) })
+                            ])
+                            if (readmeRes.ok) readme = await readmeRes.text()
+                            if (langRes.ok) languageBytes = await langRes.json()
                         } catch (e) {}
                     }
 
@@ -95,6 +99,7 @@ if (profileRes.ok) {
                                 pushedAt: repo.pushed_at,
                                 url: repo.html_url,
                                 readme,
+                                languages: languageBytes,
                                 lastSyncedAt: new Date()
                             }
                         },

@@ -91,9 +91,9 @@ export default function LanguagePieChart({ languageMap = {} }) {
                         ) : (
                             <motion.div key="total" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                                 <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-                                    {formatDuration(totalDuration)}
+                                    {chartData[0]?.name || '—'}
                                 </span>
-                                <span className="block text-xs text-slate-500 dark:text-slate-400">Total</span>
+                                <span className="block text-xs text-slate-500 dark:text-slate-400">Top Language</span>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -112,7 +112,9 @@ export default function LanguagePieChart({ languageMap = {} }) {
                     >
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{entry.name}</span>
-                        <span className="ml-auto text-xs font-mono text-slate-400 dark:text-slate-500">{formatDuration(entry.value)}</span>
+                        <span className="ml-auto text-xs font-mono text-slate-400 dark:text-slate-500">
+                            {((entry.value / totalDuration) * 100).toFixed(0)}%
+                        </span>                    
                     </motion.div>
                 ))}
             </div>

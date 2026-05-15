@@ -3,6 +3,10 @@ const mongoose = require('mongoose')
 const Activity = require('./models/activity')
 const Commit = require('./models/commit')
 const User = require('./models/user')
+const Repo = require('./models/repo')
+const Project = require('./models/project')
+
+
 require('dotenv').config()
 
 const USER_ID = '69f9da58eb9f40d1a572f90f' // paste your _id here
@@ -118,6 +122,188 @@ const run = async () => {
         }
     })
     console.log('Updated user stats')
+
+
+await Repo.deleteMany({ user: USER_ID })
+await Repo.insertMany([
+    {
+        user: USER_ID,
+        githubId: 111111,
+        name: 'codedash-frontend',
+        fullName: 'yourname/codedash-frontend',
+        language: 'JavaScript',
+        languages: { JavaScript: 450000, TypeScript: 120000, CSS: 80000, HTML: 30000 },
+        stars: 12, forks: 2, private: false,
+        pushedAt: new Date(), url: 'https://github.com', lastSyncedAt: new Date()
+    },
+    {
+        user: USER_ID,
+        githubId: 222222,
+        name: 'codedash-backend',
+        fullName: 'yourname/codedash-backend',
+        language: 'JavaScript',
+        languages: { JavaScript: 380000, Shell: 15000 },
+        stars: 8, forks: 1, private: false,
+        pushedAt: new Date(), url: 'https://github.com', lastSyncedAt: new Date()
+    },
+    {
+        user: USER_ID,
+        githubId: 333333,
+        name: 'portfolio',
+        fullName: 'yourname/portfolio',
+        language: 'TypeScript',
+        languages: { TypeScript: 200000, CSS: 95000, HTML: 40000 },
+        stars: 5, forks: 0, private: false,
+        pushedAt: new Date(), url: 'https://github.com', lastSyncedAt: new Date()
+    }
+])
+console.log('Inserted repos')
+
+await Project.deleteMany({ user: USER_ID })
+await Project.insertMany([
+    {
+        user: USER_ID,
+        title: 'CodeDash Frontend',
+        description: 'The React frontend for CodeDash — developer activity tracker.',
+        status: 'active',
+        tags: ['react', 'tailwind', 'vite'],
+        visibility: 'public',
+        totalSecondsCoded: 120000,
+        lastActiveDate: new Date(),
+        github: {
+            repoId: 111111,
+            fullName: 'yourname/codedash-frontend',
+            url: 'https://github.com',
+            stars: 12,
+            forks: 2,
+            language: 'JavaScript',
+            lastCommit: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
+        }
+    },
+    {
+        user: USER_ID,
+        title: 'CodeDash Backend',
+        description: 'Node.js + Express API for CodeDash.',
+        status: 'active',
+        tags: ['nodejs', 'express', 'mongodb'],
+        visibility: 'private',
+        totalSecondsCoded: 85000,
+        lastActiveDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        github: {
+            repoId: 222222,
+            fullName: 'yourname/codedash-backend',
+            url: 'https://github.com',
+            stars: 8,
+            forks: 1,
+            language: 'JavaScript',
+            lastCommit: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) // 3 days ago
+        }
+    },
+    {
+        user: USER_ID,
+        title: 'Portfolio',
+        description: 'Personal portfolio website.',
+        status: 'completed',
+        tags: ['typescript', 'nextjs'],
+        visibility: 'public',
+        totalSecondsCoded: 32000,
+        lastActiveDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+        github: {
+            repoId: 333333,
+            fullName: 'yourname/portfolio',
+            url: 'https://github.com',
+            stars: 5,
+            forks: 0,
+            language: 'TypeScript',
+            lastCommit: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000) // 40 days ago — will show red dot
+        }
+    }
+])
+console.log('Inserted projects')
+
+const PullRequest = require('./models/pullRequest')
+const Release = require('./models/release')
+
+await PullRequest.deleteMany({ user: USER_ID })
+const prMessages = ['Add dashboard layout', 'Fix auth bug', 'Add GitHub sync', 'Improve UI']
+for (let daysAgo = 28; daysAgo >= 0; daysAgo -= 4) {
+    const date = new Date()
+    date.setDate(date.getDate() - daysAgo)
+    await PullRequest.create({
+        user: USER_ID,
+        repo: projects[randomBetween(0, projects.length - 1)],
+        repoId: randomBetween(100000, 999999),
+        githubId: randomBetween(1000000, 9999999),
+        title: prMessages[randomBetween(0, prMessages.length - 1)],
+        state: 'merged',
+        merged: true,
+        mergedAt: date,
+        openedAt: new Date(date.getTime() - 24 * 60 * 60 * 1000),
+        isOwnRepo: true,
+        role: 'author'
+    })
+}
+console.log('Inserted PRs')
+
+await Release.deleteMany({ user: USER_ID })
+await Release.insertMany([
+    {
+        user: USER_ID,
+        repo: 'yourname/codedash-frontend',
+        repoId: 111111,
+        githubId: 99991,
+        tagName: 'v0.1.0',
+        title: 'Initial Release',
+        isPrerelease: false,
+        publishedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+    },
+    {
+        user: USER_ID,
+        repo: 'yourname/codedash-backend',
+        repoId: 222222,
+        githubId: 99992,
+        tagName: 'v0.2.0',
+        title: 'Beta Release',
+        isPrerelease: true,
+        publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    }
+])
+console.log('Inserted releases')
+// Generate 2 years of commits
+await Commit.deleteMany({ user: USER_ID })
+const commitMessages = [
+    'feat: add dashboard layout', 'fix: correct token refresh logic',
+    'refactor: clean up auth store', 'feat: add GitHub sync queue',
+    'fix: socket disconnect on logout', 'chore: update dependencies',
+    'feat: add activity tracking endpoint', 'fix: streak calculation edge case',
+    'feat: shipping heatmap component', 'fix: language chart data source',
+    'refactor: profile controller', 'chore: seed script improvements',
+]
+const commitDocs = []
+for (let daysAgo = 730; daysAgo >= 0; daysAgo--) {
+    if (Math.random() < 0.3) continue // skip ~30% of days
+    const numCommits = randomBetween(1, 6)
+    for (let c = 0; c < numCommits; c++) {
+        const date = new Date()
+        date.setDate(date.getDate() - daysAgo)
+        commitDocs.push({
+            user: USER_ID,
+            sha: `fake${Math.random().toString(36).slice(2)}${c}`,
+            message: commitMessages[randomBetween(0, commitMessages.length - 1)],
+            timestamp: date,
+            branch: 'main',
+            repo: projects[randomBetween(0, projects.length - 1)],
+            repoId: randomBetween(100000, 999999),
+            additions: randomBetween(10, 200),
+            deletions: randomBetween(5, 80),
+            url: 'https://github.com',
+            detailsFetched: true,
+        })
+    }
+}
+await Commit.insertMany(commitDocs)
+console.log(`Inserted ${commitDocs.length} commits`)
+
 
     await mongoose.disconnect()
     console.log('Done!')

@@ -162,6 +162,10 @@ const userSchema = new mongoose.Schema({
       type: Map,
       of: Number
     },
+    languageChars: {
+      type: Map,
+      of: Number
+    },
     projects: {
       type: Map,
       of: Number

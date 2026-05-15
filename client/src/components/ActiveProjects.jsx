@@ -5,11 +5,13 @@ import { apiClient } from '../lib/api'
 export default function ActiveProjects() {
     const [projects, setProjects] = useState([])
     const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(false)
 
     useEffect(() => {
         const fetch = async () => {
             try {
                 const data = await apiClient.getProjects()
+                console.log('projects from API:', data)
                 // only show active projects, max 4
                 const active = data
                     .filter(p => p.status === 'active')
@@ -17,6 +19,7 @@ export default function ActiveProjects() {
                 setProjects(active)
             } catch (e) {
                 console.error('Failed to fetch projects:', e)
+                setError(true)
             } finally {
                 setIsLoading(false)
             }
@@ -24,6 +27,18 @@ export default function ActiveProjects() {
         fetch()
     }, [])
 
+    if (error) return (
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+            <p className="text-sm text-slate-400">Failed to load projects.</p>
+        </div>
+    )
+    const getHealthColor = (lastCommit) => {
+        if (!lastCommit) return 'bg-slate-300'
+        const days = (Date.now() - new Date(lastCommit)) / (1000 * 60 * 60 * 24)
+        if (days < 7) return 'bg-emerald-400'   // active this week
+        if (days < 30) return 'bg-amber-400'     // active this month
+        return 'bg-red-400'                       // going cold
+    }
     const formatHours = (seconds) => {
         if (!seconds) return '0h'
         const hours = Math.floor(seconds / 3600)
@@ -71,6 +86,10 @@ export default function ActiveProjects() {
                                 )}
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                                <div 
+                                    title={`Last commit: ${project.github?.lastCommit ? new Date(project.github.lastCommit).toLocaleDateString() : 'unknown'}`}
+                                    className={`w-2 h-2 rounded-full flex-shrink-0 ${getHealthColor(project.github?.lastCommit)}`} 
+                                />
                                 {project.github?.language && (
                                     <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400">
                                         {project.github.language}
@@ -80,6 +99,7 @@ export default function ActiveProjects() {
                                     {formatHours(project.totalSecondsCoded)}
                                 </span>
                             </div>
+                            
                         </Link>
                     ))}
                 </div>

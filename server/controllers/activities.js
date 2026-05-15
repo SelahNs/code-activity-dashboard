@@ -51,9 +51,12 @@ activitiesRouter.post('/', async (request, response) => {
         "stats.totalLinesDeleted": totalLinesDeleted,
         "stats.totalSecondsCoded": totalSecondsBatch
     }}
+
+    const languageCharTotals = {}
     
     preparedActivities.forEach(p => {
       languageTotals[p.language] = (languageTotals[p.language] || 0) + p.duration/1000
+      languageCharTotals[p.language] = (languageCharTotals[p.language] || 0) + p.charsAdded
       editorTotals[p.editor] = (editorTotals[p.editor] || 0) + p.duration/1000
 
       if (p.project) {
@@ -78,6 +81,10 @@ activitiesRouter.post('/', async (request, response) => {
     
     Object.entries(languageTotals).forEach(([keyword, value]) => {
       updateInstruction.$inc[`skills.languages.${keyword}`] = value
+    })
+
+    Object.entries(languageCharTotals).forEach(([keyword, value]) => {
+    updateInstruction.$inc[`skills.languageChars.${keyword}`] = value
     })
 
     Object.entries(editorTotals).forEach(([keyword, value]) => {

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { FiPlus, FiClock, FiZap, FiTrendingUp, FiCpu } from 'react-icons/fi'
 
+import { authApiFetch, apiClient } from '../lib/api'
 import StatCard from '../components/StatCard'
 import ProductivityChart from '../components/ProductivityChart'
 import LanguagePieChart from '../components/LanguagePieChart'
@@ -13,10 +14,9 @@ import RecentActivity from '../components/RecentActivity'
 import AiSuggestions from '../components/AiSuggestions'
 import Milestones from '../components/Milestones'
 import DateRangePicker from '../components/DateRangePicker'
-
+import ShippingHeatmap from '../components/ShippingHeatmap'
 import useAuthStore from '../stores/useAuthStore'
 import useUserStore from '../stores/useUserStore'
-import { authApiFetch } from '../lib/api'
 import socket from '../utils/socket'
 
 // --- Helpers ---
@@ -63,7 +63,7 @@ export default function DashboardPage() {
 
     const user = useAuthStore((state) => state.user)
     const { userData, isLoading: userLoading, fetchUser } = useUserStore()
-
+    const [githubStats, setGithubStats] = useState({ dailyActivity: {}, totals: {}})
     // Fetch activities whenever the date range changes
     const fetchActivities = useCallback(async () => {
         setActivitiesLoading(true)
@@ -82,11 +82,20 @@ export default function DashboardPage() {
             setActivitiesLoading(false)
         }
     }, [dateRange])
+    const fetchGithubStats = useCallback(async () => {
+    try {
+        const data = await apiClient.getGithubStats()
+        setGithubStats(data)
+    } catch (e) {
+        console.error('Failed to fetch github stats:', e)
+    }
+}, [])
 
     useEffect(() => {
         fetchUser()
         fetchActivities()
-    }, [fetchActivities])
+        fetchGithubStats()
+    }, [fetchActivities, fetchGithubStats])
 
     // When GitHub sync completes, refresh both user stats and activities
     useEffect(() => {
@@ -194,12 +203,16 @@ export default function DashboardPage() {
                                     </div>
                                 ) : (
                                     <ProductivityChart sessions={activities} dataKey="duration" />
-                                )}
+ )}
+                             
                             </div>
                         </div>
+                        <ShippingHeatmap
+                            dailyActivity={githubStats.dailyActivity}
+                            dateRange={dateRange}
+                        />
 
-                        <LanguagePieChart languageMap={userData?.skills?.languages || {}} />
-                        <AiSuggestions />
+                        <LanguagePieChart languageMap={userData?.skills?.githubLanguages || {}} />                        <AiSuggestions />
                     </div>
 
                     {/* SIDEBAR */}

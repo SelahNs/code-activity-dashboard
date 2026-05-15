@@ -25,7 +25,8 @@ const repoSchema = new mongoose.Schema({
     createdAt: Date,
     updatedAt: Date,
     url: String,
-    readme: String          // markdown content fetched from GitHub
+    readme: String,
+    languages: {type: Map, of: Number, default: {}}          // markdown content fetched from GitHub
 }, { timestamps: true });
 
 repoSchema.set('toJSON', {

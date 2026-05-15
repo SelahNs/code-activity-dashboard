@@ -1,5 +1,6 @@
 const usersRouter = require('express').Router()
 const User = require('../models/user')
+const Repo = require('../models/repo')
 
 const ALLOWED_PROFILE_FIELDS = [
     'fullName', 'bio', 'location', 'company',
@@ -15,10 +16,28 @@ usersRouter.get('/me', async (request, response) => {
     if (!user) return response.status(401).json({ error: 'unauthorized' })
 
     try {
-        const fullUser = await User.findById(user.id)
+        const [fullUser, repos] = await Promise.all([
+            User.findById(user.id),
+            Repo.find({ user: user.id }, { languages: 1 })
+        ])
         if (!fullUser) return response.status(404).json({ error: 'user not found' })
 
-        return response.status(200).json(fullUser)
+        // Aggregate GitHub bytes across all repos per language
+        const githubLanguages = {}
+        for (const repo of repos) {
+            const langMap = repo.languages instanceof Map
+                ? Object.fromEntries(repo.languages)
+                : (repo.languages || {})
+            for (const [lang, bytes] of Object.entries(langMap)) {
+                githubLanguages[lang] = (githubLanguages[lang] || 0) + bytes
+            }
+        }
+
+        const userJson = fullUser.toJSON()
+        if (!userJson.skills) userJson.skills = {}
+        userJson.skills.githubLanguages = githubLanguages
+
+        return response.status(200).json(userJson)
     } catch (error) {
         console.error('GET /users/me error:', error.message)
         return response.status(500).json({ error: 'something went wrong' })
