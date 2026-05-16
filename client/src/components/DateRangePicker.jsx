@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { FiCalendar, FiCheck } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ranges = ['This Week', 'This Month', 'All Time'];
+const ranges = ['This Week', 'This Month', 'Last 3 Months', 'This Year', 'All Time'];
 
 export default function DateRangePicker({ selectedRange, onRangeChange }) {
     const [isOpen, setIsOpen] = useState(false);

@@ -6,7 +6,7 @@ activitiesRouter.get('/', async (request, response) => {
     const user = request.user
     if (!user) return response.status(401).json({ error: 'unauthorized' })
 
-    const { from, to } = request.query
+    const { from, to, limit } = request.query
     const filter = { user: user._id }
 
     if (from || to) {
@@ -15,7 +15,10 @@ activitiesRouter.get('/', async (request, response) => {
         if (to) filter.capturedAt.$lte = new Date(to)
     }
 
-    const activities = await Activity.find(filter).sort({ capturedAt: -1 })
+    const query = Activity.find(filter).sort({ capturedAt: -1 })
+     if (limit) query.limit(parseInt(limit))
+
+    const activities = await query
     response.json(activities)
 })
 

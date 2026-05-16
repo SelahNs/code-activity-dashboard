@@ -1,55 +1,91 @@
 // src/components/Milestones.jsx
-import { FiAward, FiZap, FiCode } from 'react-icons/fi';
+import { useEffect, useState } from 'react'
+import { FiAward, FiZap, FiCode, FiTrendingUp } from 'react-icons/fi'
+import { apiClient } from '../lib/api'
+import useUserStore from '../stores/useUserStore'
 
-// A simple helper component for each milestone item
-const MilestoneItem = ({ icon, title, value, unit }) => {
-    return (
-        <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-lg">
-                {icon}
-            </div>
-            <div>
-                <p className="font-semibold text-slate-700 dark:text-slate-200">{title}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                    <span className="font-bold text-slate-600 dark:text-slate-300">{value}</span> {unit}
-                </p>
-            </div>
+const MilestoneItem = ({ icon, title, value, subtitle }) => (
+    <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-lg">
+            {icon}
         </div>
-    );
-};
+        <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{title}</p>
+            <p className="font-semibold text-slate-700 dark:text-slate-200">{value}</p>
+            {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+        </div>
+    </div>
+)
 
-export default function Milestones({ allSessions = [] }) {
-    // In a real app, you'd calculate these from the entire user history,
-    // but for now, we'll calculate from the data we have.
-    const longestSession = allSessions.reduce((max, s) => s.duration > max ? s.duration : max, 0);
-    const mostLines = allSessions.reduce((max, s) => s.linesAdded > max ? s.linesAdded : max, 0);
-    const mostProductiveDay = "Oct 26, 2023"; // Dummy data for display
+const formatDuration = (ms) => {
+    const seconds = ms / 1000
+    const hours = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    if (hours === 0) return `${mins}m`
+    if (mins === 0) return `${hours}h`
+    return `${hours}h ${mins}m`
+}
+
+export default function Milestones() {
+    const [bests, setBests] = useState(null)
+    const { userData } = useUserStore()
+
+    useEffect(() => {
+        apiClient.getBests()
+            .then(data => setBests(data))
+            .catch(e => console.error('Failed to fetch bests:', e))
+    }, [])
+
+    const stats = userData?.stats
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Personal Bests</h3>
+                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">
+                    Personal Bests
+                </h3>
             </div>
             <div className="p-6 space-y-5">
                 <MilestoneItem
                     icon={<FiAward className="w-5 h-5 text-amber-500" />}
                     title="Most Productive Day"
-                    value={mostProductiveDay}
-                    unit=""
+                    value={bests?.mostProductiveDay
+                        ? new Date(bests.mostProductiveDay._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—'
+                    }
+                    subtitle={bests?.mostProductiveDay
+                        ? `${bests.mostProductiveDay.totalLines.toLocaleString()} lines added`
+                        : null
+                    }
                 />
                 <MilestoneItem
                     icon={<FiZap className="w-5 h-5 text-blue-500" />}
                     title="Longest Session"
-                    value={`${(longestSession / 60).toFixed(1)}`}
-                    unit="hours"
+                    value={bests?.longestSession
+                        ? formatDuration(bests.longestSession.duration)
+                        : '—'
+                    }
+                    subtitle={bests?.longestSession
+                        ? new Date(bests.longestSession.capturedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : null
+                    }
                 />
                 <MilestoneItem
-                    icon={<FiCode className="w-5 h-5 text-emerald-500" />}
-                    title="Most Lines in a Day"
-                    value={mostLines.toLocaleString()}
-                    unit="lines"
+                    icon={<FiTrendingUp className="w-5 h-5 text-emerald-500" />}
+                    title="Longest Streak"
+                    value={stats?.longestStreak ? `${stats.longestStreak} days` : '—'}
+                    subtitle="consecutive coding days"
+                />
+                <MilestoneItem
+                    icon={<FiCode className="w-5 h-5 text-purple-500" />}
+                    title="Total Lines Added"
+                    value={stats?.totalLinesAdded
+                        ? stats.totalLinesAdded.toLocaleString()
+                        : '—'
+                    }
+                    subtitle="all time"
                 />
             </div>
         </div>
-    );
+    )
 }

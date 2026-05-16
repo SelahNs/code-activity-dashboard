@@ -144,4 +144,5 @@ export const apiClient = {
     }),
     getRepos: () => authApiFetch('/api/repos'),
     getGithubStats: () => authApiFetch(`/api/stats/github`),
+    getBests: () => authApiFetch('/api/stats/bests'),
 }

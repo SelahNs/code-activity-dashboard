@@ -74,4 +74,32 @@ statsRouter.get('/github', async (request, response) => {
     })
 })
 
+statsRouter.get('/bests', async (request, response) => {
+    const { user } = request
+    if (!user) return response.status(401).json({ error: 'unauthorized' })
+
+    // Most productive day — day with most lines added
+    const mostProductiveDay = await Activity.aggregate([
+        { $match: { user: user._id } },
+        { $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$capturedAt' } },
+            totalLines: { $sum: '$linesAdded' },
+            totalSeconds: { $sum: '$duration' }
+        }},
+        { $sort: { totalLines: -1 } },
+        { $limit: 1 }
+    ])
+
+    // Longest single session
+    const longestSession = await Activity.findOne(
+        { user: user._id },
+        { duration: 1, capturedAt: 1 }
+    ).sort({ duration: -1 })
+
+    return response.json({
+        mostProductiveDay: mostProductiveDay[0] || null,
+        longestSession: longestSession || null
+    })
+})
+
 module.exports = statsRouter
