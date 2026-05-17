@@ -15,7 +15,7 @@ export default function ActiveProjects() {
                 // only show active projects, max 4
                 const active = data
                     .filter(p => p.status === 'active')
-                    .slice(0, 4)
+                    .slice(0, 3)
                 setProjects(active)
             } catch (e) {
                 console.error('Failed to fetch projects:', e)

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
     FiClock, FiZap, FiTrendingUp, FiActivity,
-    FiGitCommit, FiStar, FiCheck, FiCode
+    FiGitCommit, FiStar, FiCheck, FiCode, FiPackage
 } from 'react-icons/fi'
 
 import { authApiFetch, apiClient } from '../lib/api'
@@ -25,18 +25,59 @@ const getRangeDates = (dateRange) => {
     const now = new Date()
     const to = now.toISOString()
     let from
+
     if (dateRange === 'This Week') {
-        const d = new Date(); d.setDate(d.getDate() - 7); from = d.toISOString()
+        const day = now.getDay() // 0=Sun, 1=Mon...
+        const monday = new Date(now)
+        monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
+        monday.setHours(0, 0, 0, 0)
+        from = monday.toISOString()
     } else if (dateRange === 'This Month') {
-        const d = new Date(); d.setDate(d.getDate() - 30); from = d.toISOString()
+        const first = new Date(now.getFullYear(), now.getMonth(), 1)
+        from = first.toISOString()
     } else if (dateRange === 'Last 3 Months') {
-        const d = new Date(); d.setDate(d.getDate() - 90); from = d.toISOString()
+        const d = new Date(now)
+        d.setMonth(d.getMonth() - 3)
+        from = d.toISOString()
     } else if (dateRange === 'This Year') {
-        const d = new Date(); d.setDate(d.getDate() - 365); from = d.toISOString()
+        const first = new Date(now.getFullYear(), 0, 1)
+        from = first.toISOString()
     } else {
         from = null
     }
     return { from, to }
+}
+
+    const getPreviousRange = (dateRange, from, to) => {
+    if (dateRange === 'This Week') {
+        const prevFrom = new Date(from)
+        prevFrom.setDate(prevFrom.getDate() - 7)
+        const prevTo = new Date(to)
+        prevTo.setDate(prevTo.getDate() - 7)
+        return { prevFrom: prevFrom.toISOString(), prevTo: prevTo.toISOString() }
+    }
+    if (dateRange === 'This Month') {
+        const prevFrom = new Date(from)
+        prevFrom.setMonth(prevFrom.getMonth() - 1)
+        const prevTo = new Date(to)
+        prevTo.setMonth(prevTo.getMonth() - 1)
+        return { prevFrom: prevFrom.toISOString(), prevTo: prevTo.toISOString() }
+    }
+    if (dateRange === 'Last 3 Months') {
+        const prevFrom = new Date(from)
+        prevFrom.setMonth(prevFrom.getMonth() - 3)
+        const prevTo = new Date(to)
+        prevTo.setMonth(prevTo.getMonth() - 3)
+        return { prevFrom: prevFrom.toISOString(), prevTo: prevTo.toISOString() }
+    }
+    if (dateRange === 'This Year') {
+        const prevFrom = new Date(from)
+        prevFrom.setFullYear(prevFrom.getFullYear() - 1)
+        const prevTo = new Date(to)
+        prevTo.setFullYear(prevTo.getFullYear() - 1)
+        return { prevFrom: prevFrom.toISOString(), prevTo: prevTo.toISOString() }
+    }
+    return { prevFrom: null, prevTo: null }
 }
 
 const formatHours = (seconds) => {
@@ -45,19 +86,76 @@ const formatHours = (seconds) => {
     return h < 10 ? `${h.toFixed(1)}h` : `${Math.round(h)}h`
 }
 
+// Style label first, percentage in subtitle
 const getCodingStyle = (ratio) => {
     if (ratio === null || ratio === undefined) return { value: '—', desc: 'No data yet' }
     const pct = Math.round(ratio * 100)
-    if (ratio >= 0.8) return { value: `${pct}%`, desc: 'Deep typing' }
-    if (ratio >= 0.5) return { value: `${pct}%`, desc: 'Balanced workflow' }
-    if (ratio >= 0.25) return { value: `${pct}%`, desc: 'AI-augmented' }
-    return { value: `${pct}%`, desc: 'AI-first workflow' }
+    if (ratio >= 0.8) return { value: `${pct}% Manual`, desc: 'Deep typing style' }
+    if (ratio >= 0.5) return { value: `${pct}% Manual`, desc: 'Balanced workflow' }
+    if (ratio >= 0.25) return { value: `${pct}% Manual`, desc: 'AI-augmented' }
+    return { value: `${pct}% Manual`, desc: 'Vibe coding' }
+}
+
+// Frameworks placeholder card
+const FrameworksCard = ({ frameworks }) => {
+    const hasFrameworks = frameworks && Object.keys(frameworks).length > 0
+    const topFrameworks = hasFrameworks
+        ? Object.entries(frameworks)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+        : []
+
+    const COLORS = ['#4F46E5', '#7C3AED', '#F59E0B', '#EA580C', '#64748B']
+
+    return (
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">
+                        Frameworks
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                        Detected from your projects
+                    </p>
+                </div>
+                {!hasFrameworks && (
+                    <span className="text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                        Coming soon
+                    </span>
+                )}
+            </div>
+
+            {hasFrameworks ? (
+                <div className="flex flex-col gap-2">
+                    {topFrameworks.map(([name], i) => (
+                        <div key={name} className="flex items-center gap-2.5">
+                            <div
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                            />
+                            <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
+                                {name}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center py-4 text-center gap-2">
+                    <FiPackage className="w-8 h-8 text-slate-200 dark:text-slate-700" />
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                        Framework detection is coming with the next extension update. React, Next.js, Django and more will appear here automatically.
+                    </p>
+                </div>
+            )}
+        </div>
+    )
 }
 
 export default function DashboardPage() {
     const [dateRange, setDateRange] = useState('This Week')
     const [activities, setActivities] = useState([])
     const [activitiesLoading, setActivitiesLoading] = useState(true)
+    const [previousActivities, setPreviousActivities] = useState([])
     const [githubStats, setGithubStats] = useState({ dailyActivity: {}, totals: {} })
 
     const user = useAuthStore((state) => state.user)
@@ -67,21 +165,34 @@ export default function DashboardPage() {
     const hasGitHubData = !!(userData?.github?.username || userData?.github?.id)
 
     const fetchActivities = useCallback(async () => {
-        setActivitiesLoading(true)
-        try {
-            const { from, to } = getRangeDates(dateRange)
-            const params = new URLSearchParams()
-            if (from) params.append('from', from)
-            params.append('to', to)
-            const data = await authApiFetch(`/api/activities?${params.toString()}`)
-            setActivities(data.map(a => ({ ...a, date: a.capturedAt })))
-        } catch (e) {
-            console.error('Failed to fetch activities:', e)
-            setActivities([])
-        } finally {
-            setActivitiesLoading(false)
-        }
-    }, [dateRange])
+    setActivitiesLoading(true)
+    try {
+        const { from, to } = getRangeDates(dateRange)
+        const { prevFrom, prevTo } = getPreviousRange(dateRange, from, to)
+
+        const currentParams = new URLSearchParams()
+        if (from) currentParams.append('from', from)
+        currentParams.append('to', to)
+
+        const prevParams = new URLSearchParams()
+        if (prevFrom) prevParams.append('from', prevFrom)
+        if (prevTo) prevParams.append('to', prevTo)
+
+        const [currentData, prevData] = await Promise.all([
+            authApiFetch(`/api/activities?${currentParams.toString()}`),
+            prevFrom ? authApiFetch(`/api/activities?${prevParams.toString()}`) : Promise.resolve([])
+        ])
+
+        setActivities(currentData.map(a => ({ ...a, date: a.capturedAt })))
+        setPreviousActivities(prevData.map(a => ({ ...a, date: a.capturedAt })))
+    } catch (e) {
+        console.error('Failed to fetch activities:', e)
+        setActivities([])
+        setPreviousActivities([])
+    } finally {
+        setActivitiesLoading(false)
+    }
+}, [dateRange])
 
     const fetchGithubStats = useCallback(async () => {
         try {
@@ -179,20 +290,15 @@ export default function DashboardPage() {
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-                {/* Email verification banner */}
                 {user && !user.isVerified && (
                     <div className="mb-6 flex items-center justify-between gap-4 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
                         <p>⚠️ Your email is not verified. Please check your inbox or request a new link.</p>
-                        <Link
-                            to="/resend-verification"
-                            className="flex-shrink-0 font-semibold underline hover:text-yellow-600"
-                        >
+                        <Link to="/resend-verification" className="flex-shrink-0 font-semibold underline hover:text-yellow-600">
                             Resend link
                         </Link>
                     </div>
                 )}
 
-                {/* Header */}
                 <header className="mb-8">
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                         <div>
@@ -205,8 +311,6 @@ export default function DashboardPage() {
                                 })}
                             </p>
                         </div>
-
-                        {/* Connection status */}
                         <div className="flex items-center gap-3 text-xs text-slate-400 pb-1">
                             {hasGitHubData && (
                                 <span className="flex items-center gap-1">
@@ -221,10 +325,7 @@ export default function DashboardPage() {
                                 </span>
                             )}
                             {!hasGitHubData && !hasVSCodeData && (
-                                <Link
-                                    to="/settings"
-                                    className="text-blue-500 hover:underline"
-                                >
+                                <Link to="/settings" className="text-blue-500 hover:underline">
                                     Connect integrations →
                                 </Link>
                             )}
@@ -237,14 +338,12 @@ export default function DashboardPage() {
                     {/* MAIN CONTENT */}
                     <div className="lg:col-span-3 space-y-6">
 
-                        {/* Stat cards */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
                             {statCards.map((card, i) => (
                                 <StatCard key={i} {...card} />
                             ))}
                         </div>
 
-                        {/* Coding Activity */}
                         {hasVSCodeData ? (
                             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-4">
@@ -264,9 +363,10 @@ export default function DashboardPage() {
                                     ) : (
                                         <ProductivityChart
                                             sessions={activities}
+                                            previousSessions={previousActivities}
                                             dataKey="duration"
-                                        />
-                                    )}
+                                            dateRange={dateRange}   // ADD THIS
+                                        />                                   )}
                                 </div>
                             </div>
                         ) : (
@@ -294,25 +394,28 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Shipping Heatmap */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <LanguagePieChart
+                                languageMap={userData?.skills?.githubLanguages || {}}
+                            />
+                            <FrameworksCard
+                                frameworks={userData?.skills?.frameworks || {}}
+                            />
+                        </div>
                         <ShippingHeatmap dailyActivity={githubStats.dailyActivity} />
-
-                        {/* Developer Summary */}
-                        <DeveloperSummary
-                            userData={userData}
-                            githubStats={githubStats}
-                        />
+                        
+                        
                     </div>
 
                     {/* SIDEBAR */}
                     <div className="lg:col-span-2 space-y-6">
                         <LiveSession />
-                        <LanguagePieChart
-                            languageMap={userData?.skills?.githubLanguages || {}}
-                        />
                         <ActiveProjects />
                         <RecentActivity />
+                        <DeveloperSummary
+                            userData={userData}
+                            githubStats={githubStats}
+                        />
                     </div>
                 </div>
             </div>

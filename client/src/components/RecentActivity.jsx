@@ -26,7 +26,7 @@ export default function RecentActivity() {
     useEffect(() => {
         const fetchCommits = async () => {
             try {
-                const data = await authApiFetch('/api/commits?limit=6')
+                const data = await authApiFetch('/api/commits?limit=3')
                 setCommits(data)
             } catch (e) {
                 console.error('Failed to fetch commits:', e)
