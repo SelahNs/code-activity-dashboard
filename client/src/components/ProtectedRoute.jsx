@@ -9,7 +9,7 @@ export default function ProtectedRoute() {
 
     console.log('Access token:', accessToken)
     if (!accessToken) {
-        return <Navigate to="/" replace />;
+        return <Navigate to="/landing" replace />;
     }
 
     try {
@@ -19,7 +19,7 @@ export default function ProtectedRoute() {
         if (isExpired) {
             if (!refreshToken) {
                 logout();
-                return <Navigate to="/" replace />;
+                return <Navigate to="/landing" replace />;
             }
 
             
@@ -30,6 +30,6 @@ export default function ProtectedRoute() {
 
     } catch {
         logout();
-        return <Navigate to="/" replace />;
+        return <Navigate to="/landing" replace />;
     }
 }

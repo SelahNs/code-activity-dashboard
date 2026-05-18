@@ -14,11 +14,10 @@ export default function Navbar({ user, onLogout }) {
     const currentPath = location.pathname;
 
     const mainNavLinks = [
-        { path: "/dashboard", label: "Dashboard" },
+        { path: "/", label: "Home" },
         { path: "/projects", label: "Projects" },
-        { path: "/reports", label: "Reports" },
-        { path: "/focus", label: "Focus" },
-        { path: "/goals", label: "Goals" },
+        { path: "/insights", label: "Insights" },
+        { path: "/community", label: "Community" },
     ];
 
     const getLinkClassName = (path, isMobile = false) => {
@@ -46,7 +45,7 @@ export default function Navbar({ user, onLogout }) {
         <nav className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
-                    <Link to="/" className="flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-slate-200">
+                    <Link to={user ? '/' : '/landing'} className="flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-slate-200">
                         <BsCodeSlash className="text-blue-600 dark:text-blue-500" />
                         <span>CodeDash</span>
                     </Link>

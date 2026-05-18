@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from "./pages/SettingsPage";
 import UsersPage from "./pages/UsersPage";
-import ReportsPage from "./pages/ReportsPage";
+import InsightsPage from "./pages/InsightsPage";
 import LoginPage from "./pages/LoginPage";
 import Navbar from "./components/Navbar";
 import ThemeProvider from './context/ThemeContext';
@@ -35,7 +35,7 @@ export default function App() {
 
     function handleLogout() {
         logout();
-        navigate('/');
+        navigate('/landing');
     }
 
     return (
@@ -56,15 +56,15 @@ export default function App() {
                         </Route>
 
                         <Route element={<ProtectedRoute />}>
-                            <Route path="/dashboard" element={<DashboardPage />} />
+                            <Route path="/" element={<DashboardPage />} />
                             <Route path="/settings" element={<SettingsPage user={currentUser} />} />
-                            <Route path="/reports" element={<ReportsPage />} />
+                            <Route path="/insights" element={<InsightsPage/>} />
                             <Route path="/users" element={<UsersPage />} />
                             <Route path="/projects" element={<ProjectsPage />} />
                             <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
                         </Route>
 
-                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/landing" element={<LandingPage />} />
                         <Route path="/verify-email" element={<EmailVerificationPage />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />

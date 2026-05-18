@@ -145,4 +145,7 @@ export const apiClient = {
     getRepos: () => authApiFetch('/api/repos'),
     getGithubStats: () => authApiFetch(`/api/stats/github`),
     getBests: () => authApiFetch('/api/stats/bests'),
+    getWeeklyTrend: () => authApiFetch('/api/stats/weekly-trend'),
+    getLanguageTrend: () => authApiFetch('/api/stats/language-trend'),
+    getCodingRhythm: () => authApiFetch('/api/stats/coding-rhythm'),
 }

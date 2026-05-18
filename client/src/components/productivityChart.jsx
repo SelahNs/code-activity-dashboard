@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload }) => {
                 </div>
                 {previousValue > 0 && (
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                        vs {formatYAxisTick(previousValue)} prev period
+                        vs {formatYAxisTick(previousValue)} previous period
                     </p>
                 )}
             </motion.div>
@@ -83,20 +83,35 @@ export default function ProductivityChart({ sessions = [], previousSessions = []
     const currentMap = aggregateByKey(sessions)
     const previousMap = aggregateByKey(previousSessions)
 
-    const formattedData = Object.values(currentMap)
-        .sort((a, b) => {
-            if (dateRange === 'This Week') {
-                return DAY_ORDER.indexOf(a.label) - DAY_ORDER.indexOf(b.label)
-            }
-            return new Date(a.originalDate) - new Date(b.originalDate)
-        })
-        .map(item => ({
-            ...item,
-            previousValue: previousMap[item.label]?.value ?? 0
-        }))
+    const currentSorted = Object.values(currentMap).sort((a, b) => {
+        if (dateRange === 'This Week') return DAY_ORDER.indexOf(a.label) - DAY_ORDER.indexOf(b.label)
+        return new Date(a.originalDate) - new Date(b.originalDate)
+    })
+
+    const previousSorted = Object.values(previousMap).sort((a, b) => {
+        if (dateRange === 'This Week') return DAY_ORDER.indexOf(a.label) - DAY_ORDER.indexOf(b.label)
+        return new Date(a.originalDate) - new Date(b.originalDate)
+    })
+
+    const formattedData = currentSorted.map((item, i) => ({
+        ...item,
+        previousValue: previousSorted[i]?.value ?? 0
+    }))
 
     const average = formattedData.reduce((sum, item) => sum + item.value, 0) / (formattedData.length || 1)
     const hasPreviousData = previousSessions.length > 0 && formattedData.some(d => d.previousValue > 0)
+
+    const maxTicks = {
+        'This Week': 7,
+        'This Month': 10,
+        'Last 3 Months': 12,
+        'This Year': 12,
+        'All Time': 12
+    }[dateRange] ?? 10
+    const tickInterval = Math.ceil(formattedData.length / maxTicks)
+    const visibleTicks = formattedData
+        .filter((_, i) => i % tickInterval === 0 || i === formattedData.length - 1)
+        .map(d => d.label)
 
     if (formattedData.length === 0) {
         return (
@@ -134,8 +149,9 @@ export default function ProductivityChart({ sessions = [], previousSessions = []
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="w-full h-full"
+            className="w-full h-full flex flex-col"
         >
+            <div className='flex-1 min-h-0'>
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={formattedData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <defs>
@@ -155,7 +171,7 @@ export default function ProductivityChart({ sessions = [], previousSessions = []
                         tickLine={false}
                         tick={{ fontSize: 11, fill: '#64748b' }}
                         dy={8}
-                        interval="preserveStartEnd"
+                        ticks={visibleTicks}
                     />
                     <YAxis
                         axisLine={false}
@@ -170,12 +186,13 @@ export default function ProductivityChart({ sessions = [], previousSessions = []
                         <Area
                             type="monotone"
                             dataKey="previousValue"
-                            stroke="#94a3b8"
-                            strokeWidth={1}
-                            strokeDasharray="3 3"
+                            stroke="#f59e0b"
+                            strokeWidth={1.5}
+                            strokeDasharray="4 3"
+                            strokeOpacity={0.5}
                             fill="url(#ghostGradient)"
                             dot={false}
-                            activeDot={false}
+                            activeDot={{ r: 3, fill: '#f59e0b', fillOpacity: 0.5, strokeWidth: 0 }}
                         />
                     )}
 
@@ -189,9 +206,26 @@ export default function ProductivityChart({ sessions = [], previousSessions = []
                         animationDuration={1000}
                     />
 
-                    <ReferenceLine y={average} stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1.5} />
+                    <ReferenceLine y={average} stroke="#94a3b8" strokeDasharray="2 5" strokeWidth={1} />
                 </AreaChart>
             </ResponsiveContainer>
+            </div>
+        <div className="flex items-center justify-center gap-4 pt-2 px-1 flex-shrink-0">
+            {hasPreviousData && (
+                <div className="flex items-center gap-1.5">
+                    <svg width="20" height="8">
+                        <line x1="0" y1="4" x2="20" y2="4" stroke="#f59e0b" strokeOpacity="0.5" strokeWidth="1.5" strokeDasharray="4 3"/>
+                    </svg>
+                    <span className="text-xs text-slate-400">prev period</span>
+                </div>
+            )}
+            <div className="flex items-center gap-1.5">
+                <svg width="20" height="8">
+                    <line x1="0" y1="4" x2="20" y2="4" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 5"/>
+                </svg>
+                <span className="text-xs text-slate-400">avg</span>
+            </div>
+        </div>
         </motion.div>
     )
 }

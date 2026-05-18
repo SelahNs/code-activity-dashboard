@@ -18,7 +18,7 @@ export default function PublicRoute() {
             return <Outlet />;
         }
 
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/" replace />;
 
     } catch {
         return <Outlet />;

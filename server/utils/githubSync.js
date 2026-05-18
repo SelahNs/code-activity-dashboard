@@ -5,6 +5,7 @@ const Commit = require('../models/commit');
 const PullRequest = require('../models/pullRequest');
 const Release = require('../models/release');
 const { githubCommitQueue, githubPRQueue } = require('./queue');
+const { KNOWN_STACK, DISPLAY_NAMES } = require('./knownStack');
 
 const GITHUB_HEADERS = (accessToken) => ({
     'Authorization': `Bearer ${accessToken}`,
@@ -12,60 +13,188 @@ const GITHUB_HEADERS = (accessToken) => ({
     'User-Agent': 'CodeDash-App'
 })
 
+// detects frameworks from a repo by reading dependency files
+const detectFrameworks = async (repoFullName, accessToken) => {
+    const filesToCheck = [
+        { path: 'package.json', parser: parsePackageJson },
+        { path: 'requirements.txt', parser: parseRequirementsTxt },
+        { path: 'Pipfile', parser: parsePipfile },
+        { path: 'pyproject.toml', parser: parsePyprojectToml },
+        { path: 'Gemfile', parser: parseGemfile },
+        { path: 'Cargo.toml', parser: parseCargoToml },
+        { path: 'go.mod', parser: parseGoMod },
+        { path: 'pubspec.yaml', parser: parsePubspec },
+        { path: 'build.gradle', parser: parseGradle },
+        { path: 'pom.xml', parser: parsePom },
+        { path: 'composer.json', parser: parseComposer },
+        { path: 'Package.swift', parser: parseSwiftPackage },
+    ]
+
+    const detected = {}
+
+    await Promise.all(filesToCheck.map(async ({ path, parser }) => {
+        try {
+            const res = await fetch(
+                `https://api.github.com/repos/${repoFullName}/contents/${path}`,
+                { headers: { ...GITHUB_HEADERS(accessToken), 'Accept': 'application/vnd.github.raw' } }
+            )
+            if (!res.ok) return
+            const content = await res.text()
+            const frameworks = parser(content)
+            for (const fw of frameworks) {
+                const displayName = DISPLAY_NAMES[fw] || fw
+                detected[displayName] = 1
+            }
+        } catch (e) {}
+    }))
+
+    return detected
+}
+
+const parsePackageJson = (content) => {
+    try {
+        const pkg = JSON.parse(content)
+        const allDeps = {
+            ...pkg.dependencies,
+            ...pkg.devDependencies
+        }
+        return Object.keys(allDeps)
+            .map(d => d.replace(/^@[^/]+\//, '').toLowerCase())
+            .filter(d => KNOWN_STACK.has(d))
+    } catch { return [] }
+}
+
+const parseRequirementsTxt = (content) => {
+    return content.split('\n')
+        .map(line => line.split(/[>=<!]/)[0].trim().toLowerCase().replace(/-/g, '-'))
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parsePipfile = (content) => {
+    const matches = content.match(/"([^"]+)"\s*=/g) || []
+    return matches
+        .map(m => m.replace(/["= ]/g, '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parsePyprojectToml = (content) => {
+    const matches = content.match(/["']([^"']+)["']\s*[>=]/g) || []
+    return matches
+        .map(m => m.replace(/["' >=]/g, '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parseGemfile = (content) => {
+    const matches = content.match(/gem\s+['"]([^'"]+)['"]/g) || []
+    return matches
+        .map(m => m.replace(/gem\s+['"]/g, '').replace(/['"]/g, '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parseCargoToml = (content) => {
+    const matches = content.match(/^([a-zA-Z0-9_-]+)\s*=/gm) || []
+    return matches
+        .map(m => m.replace(/\s*=.*/, '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parseGoMod = (content) => {
+    const matches = content.match(/require\s+([^\s]+)/g) || []
+    return matches
+        .map(m => m.replace('require ', '').split('/').pop().toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parsePubspec = (content) => {
+    const matches = content.match(/^\s{2}([a-zA-Z0-9_]+):/gm) || []
+    return matches
+        .map(m => m.trim().replace(':', '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parseGradle = (content) => {
+    const matches = content.match(/['"]([^'"]+:[^'"]+)['"]/g) || []
+    return matches
+        .map(m => m.replace(/['"]/g, '').split(':')[1]?.toLowerCase())
+        .filter(d => d && KNOWN_STACK.has(d))
+}
+
+const parsePom = (content) => {
+    const matches = content.match(/<artifactId>([^<]+)<\/artifactId>/g) || []
+    return matches
+        .map(m => m.replace(/<\/?artifactId>/g, '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
+const parseComposer = (content) => {
+    try {
+        const pkg = JSON.parse(content)
+        const allDeps = { ...pkg.require, ...pkg['require-dev'] }
+        return Object.keys(allDeps)
+            .map(d => d.split('/').pop().toLowerCase())
+            .filter(d => KNOWN_STACK.has(d))
+    } catch { return [] }
+}
+
+const parseSwiftPackage = (content) => {
+    const matches = content.match(/url:\s*"([^"]+)"/g) || []
+    return matches
+        .map(m => m.replace(/url:\s*"/, '').replace(/"/, '').split('/').pop().replace('.git', '').toLowerCase())
+        .filter(d => KNOWN_STACK.has(d))
+}
+
 // ================================================================
-// LAYER 1 — FAST SYNC (profile + repos)
+// LAYER 1 — FAST SYNC
 // ================================================================
 const syncFast = async (userId, accessToken, githubUsername) => {
     try {
-        console.log(`Fast sync starting for user ${userId}`);
+        console.log(`Fast sync starting for user ${userId}`)
 
         await User.findByIdAndUpdate(userId, {
-    $set: { 'github.accessToken': accessToken }
-});
+            $set: { 'github.accessToken': accessToken }
+        })
 
-const dbUser = await User.findById(userId);
-const blockedRepoIds = dbUser.github?.blockedRepoIds || [];
+        const dbUser = await User.findById(userId)
+        const blockedRepoIds = dbUser.github?.blockedRepoIds || []
 
-// fetch profile and repos simultaneously — independent of each other
-const [reposResponse, profileRes] = await Promise.all([
-    fetch('https://api.github.com/user/repos?per_page=100&sort=pushed&affiliation=owner', { headers: GITHUB_HEADERS(accessToken) }),
-    fetch('https://api.github.com/user', { headers: GITHUB_HEADERS(accessToken) })
-])
+        const [reposResponse, profileRes] = await Promise.all([
+            fetch('https://api.github.com/user/repos?per_page=100&sort=pushed&affiliation=owner', { headers: GITHUB_HEADERS(accessToken) }),
+            fetch('https://api.github.com/user', { headers: GITHUB_HEADERS(accessToken) })
+        ])
 
-
-if (profileRes.ok) {
-    const profile = await profileRes.json()
-    const manuallyEdited = dbUser.manuallyEdited || []
-
-    const profileUpdate = {}
-    if (!manuallyEdited.includes('fullName')) profileUpdate['profile.fullName'] = profile.name || null
-    if (!manuallyEdited.includes('bio')) profileUpdate['profile.bio'] = profile.bio || null
-    if (!manuallyEdited.includes('location')) profileUpdate['profile.location'] = profile.location || null
-    if (!manuallyEdited.includes('company')) profileUpdate['profile.company'] = profile.company || null
-    if (!manuallyEdited.includes('website')) profileUpdate['profile.website'] = profile.blog || null
-    if (!manuallyEdited.includes('avatarUrl')) profileUpdate['profile.avatarUrl'] = profile.avatar_url || null
-
-    await User.findByIdAndUpdate(userId, { $set: profileUpdate })
-}
-
-    if (!reposResponse.ok) {
-            console.error('Failed to fetch repos');
-            return;
+        if (profileRes.ok) {
+            const profile = await profileRes.json()
+            const manuallyEdited = dbUser.manuallyEdited || []
+            const profileUpdate = {}
+            if (!manuallyEdited.includes('fullName')) profileUpdate['profile.fullName'] = profile.name || null
+            if (!manuallyEdited.includes('bio')) profileUpdate['profile.bio'] = profile.bio || null
+            if (!manuallyEdited.includes('location')) profileUpdate['profile.location'] = profile.location || null
+            if (!manuallyEdited.includes('company')) profileUpdate['profile.company'] = profile.company || null
+            if (!manuallyEdited.includes('website')) profileUpdate['profile.website'] = profile.blog || null
+            if (!manuallyEdited.includes('avatarUrl')) profileUpdate['profile.avatarUrl'] = profile.avatar_url || null
+            await User.findByIdAndUpdate(userId, { $set: profileUpdate })
         }
-        const repos = await reposResponse.json();
-        const filteredRepos = repos.filter(r => !blockedRepoIds.includes(r.id));
 
-        // process 10 repos at a time
+        if (!reposResponse.ok) {
+            console.error('Failed to fetch repos')
+            return
+        }
+
+        const repos = await reposResponse.json()
+        const filteredRepos = repos.filter(r => !blockedRepoIds.includes(r.id))
+
         for (let i = 0; i < filteredRepos.length; i += 10) {
-            const batch = filteredRepos.slice(i, i + 10);
+            const batch = filteredRepos.slice(i, i + 10)
             await Promise.all(batch.map(async (repo) => {
                 try {
-                    const repoDoc = await Repo.findOne({ githubId: repo.id });
+                    const repoDoc = await Repo.findOne({ githubId: repo.id })
                     const hasNewPushes = !repoDoc?.pushedAt ||
-                        new Date(repo.pushed_at) > new Date(repoDoc.pushedAt);
+                        new Date(repo.pushed_at) > new Date(repoDoc.pushedAt)
 
-                    let readme = repoDoc?.readme || null;
-                   let languageBytes = {}
+                    let readme = repoDoc?.readme || null
+                    let languageBytes = {}
+                    let frameworks = {}
+
                     if (hasNewPushes) {
                         try {
                             const [readmeRes, langRes] = await Promise.all([
@@ -76,7 +205,16 @@ if (profileRes.ok) {
                             ])
                             if (readmeRes.ok) readme = await readmeRes.text()
                             if (langRes.ok) languageBytes = await langRes.json()
+
+                            // detect frameworks from dependency files
+                            frameworks = await detectFrameworks(repo.full_name, accessToken)
                         } catch (e) {}
+                    } else {
+                        // keep existing frameworks if no new pushes
+                        const existingMap = repoDoc?.frameworks
+                        frameworks = existingMap instanceof Map
+                            ? Object.fromEntries(existingMap)
+                            : (existingMap || {})
                     }
 
                     await Repo.findOneAndUpdate(
@@ -100,19 +238,20 @@ if (profileRes.ok) {
                                 url: repo.html_url,
                                 readme,
                                 languages: languageBytes,
+                                frameworks,
                                 lastSyncedAt: new Date()
                             }
                         },
                         { upsert: true, new: true }
-                    );
+                    )
 
                     const existingProject = await Project.findOne({
                         user: userId,
                         'github.repoId': repo.id
-                    });
+                    })
 
-                    const daysSinceLastPush = (Date.now() - new Date(repo.pushed_at)) / (1000 * 60 * 60 * 24);
-                    const derivedStatus = daysSinceLastPush > 30 ? 'paused' : 'active';
+                    const daysSinceLastPush = (Date.now() - new Date(repo.pushed_at)) / (1000 * 60 * 60 * 24)
+                    const derivedStatus = daysSinceLastPush > 30 ? 'paused' : 'active'
 
                     if (existingProject) {
                         const updateFields = {
@@ -123,17 +262,17 @@ if (profileRes.ok) {
                             'github.fullName': repo.full_name,
                             'github.url': repo.html_url,
                             'github.readme': readme,
-                        };
-                        const manuallyEdited = existingProject.manuallyEdited || [];
-                        if (!manuallyEdited.includes('title')) updateFields.title = repo.name;
-                        if (!manuallyEdited.includes('description')) updateFields.description = repo.description || '';
-                        if (!manuallyEdited.includes('visibility')) updateFields.visibility = repo.private ? 'private' : 'public';
+                        }
+                        const manuallyEdited = existingProject.manuallyEdited || []
+                        if (!manuallyEdited.includes('title')) updateFields.title = repo.name
+                        if (!manuallyEdited.includes('description')) updateFields.description = repo.description || ''
+                        if (!manuallyEdited.includes('visibility')) updateFields.visibility = repo.private ? 'private' : 'public'
                         if (!manuallyEdited.includes('status') &&
                             existingProject.status !== 'completed' &&
                             existingProject.status !== 'archived') {
-                            updateFields.status = derivedStatus;
+                            updateFields.status = derivedStatus
                         }
-                        await Project.findByIdAndUpdate(existingProject._id, { $set: updateFields });
+                        await Project.findByIdAndUpdate(existingProject._id, { $set: updateFields })
                     } else {
                         await Project.create({
                             user: userId,
@@ -152,23 +291,21 @@ if (profileRes.ok) {
                                 lastCommit: repo.pushed_at,
                                 readme
                             }
-                        });
+                        })
                     }
                 } catch (e) {
-                    console.error(`Fast sync failed for repo ${repo.full_name}:`, e.message);
+                    console.error(`Fast sync failed for repo ${repo.full_name}:`, e.message)
                 }
-            }));
+            }))
         }
 
-        // queue layer 2
-        await githubCommitQueue.add({ userId, accessToken, githubUsername });
-        console.log(`Fast sync complete for user ${userId}`);
+        await githubCommitQueue.add({ userId, accessToken, githubUsername })
+        console.log(`Fast sync complete for user ${userId}`)
 
     } catch (error) {
-        console.error('syncFast error:', error.message);
+        console.error('syncFast error:', error.message)
     }
-};
-
+}
 // ================================================================
 // LAYER 2 — COMMIT SYNC
 // ================================================================

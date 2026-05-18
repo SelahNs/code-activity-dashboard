@@ -173,6 +173,14 @@ const userSchema = new mongoose.Schema({
     independentFiles: {
       type: Map,
       of: Number
+    },
+    frameworks: {
+      type: Map,
+      of: Number
+    },
+    frameworksTime: {
+      type: Map,
+      of: Number
     }
   },
   github: {
