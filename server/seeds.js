@@ -36,6 +36,8 @@ const generateActivities = () => {
                 Math.floor(keystrokes * 1.2)
             )
 
+            date.setHours(randomBetween(8, 23), randomBetween(0, 59), 0, 0)
+            
             activities.push({
                 user: USER_ID,
                 duration: randomBetween(10, 90) * 60 * 1000,
