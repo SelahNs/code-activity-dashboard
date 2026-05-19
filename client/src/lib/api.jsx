@@ -148,4 +148,5 @@ export const apiClient = {
     getWeeklyTrend: () => authApiFetch('/api/stats/weekly-trend'),
     getLanguageTrend: () => authApiFetch('/api/stats/language-trend'),
     getCodingRhythm: () => authApiFetch('/api/stats/coding-rhythm'),
+    getWorkStyle: () => authApiFetch('/api/stats/work-style'),
 }
