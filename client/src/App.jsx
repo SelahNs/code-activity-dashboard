@@ -16,7 +16,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import ShowcasePage from "./pages/ShowcasePage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import ResendVerificationPage from "./pages/ResendVerificationPage";
-import ResetPasswordPage from "./pages/resetPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Toast from './components/Toast';
 import useAuthStore from "./stores/useAuthStore";
 import useNotificationStore from "./stores/useNotificationStore";
