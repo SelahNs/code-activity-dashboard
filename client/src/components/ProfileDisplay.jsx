@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'; // <-- ADDED IMPORTS
 import { getAvatarComponent } from '../data/avatar';
 import { Link } from 'react-router-dom';
 import { AiFillGithub, AiFillLinkedin, AiFillTwitterCircle } from 'react-icons/ai';
@@ -6,8 +7,37 @@ import {
     FiBriefcase, FiLink, FiCpu, FiAward, FiZap, FiCode 
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { authApiFetch } from '../lib/api'; // <-- IMPORTED API FETCH
 
 export default function ProfileDisplay({ formData, onEditClick }) {
+    const [apiSecret, setApiSecret] = useState('');
+    const [secretLoading, setSecretLoading] = useState(true);
+    const [showSecret, setShowSecret] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    // Fetch the apiSecret securely on mount
+    useEffect(() => {
+        const fetchSecret = async () => {
+            try {
+                const data = await authApiFetch('/api/users/secret');
+                if (data && data.apiSecret) {
+                    setApiSecret(data.apiSecret);
+                }
+            } catch (err) {
+                console.error('Failed to fetch apiSecret:', err.message);
+            } finally {
+                setSecretLoading(false);
+            }
+        };
+        fetchSecret();
+    }, []);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(apiSecret);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     // Elegant Skeleton Loading State
     if (!formData || !formData.profile) {
         return (
@@ -184,6 +214,46 @@ export default function ProfileDisplay({ formData, onEditClick }) {
                                     </div>
                                 </div>
                             )}
+
+                            {/* --- API SECRET / EXTENSION CONNECTION CARD --- */}
+                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Extension Authentication</h4>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-semibold text-slate-400">VS Code API Secret</span>
+                                        <p className="font-mono text-xs text-slate-800 dark:text-slate-200 tracking-wider truncate max-w-[280px]">
+                                            {secretLoading ? (
+                                                <span className="text-slate-400">Loading secret...</span>
+                                            ) : showSecret ? (
+                                                apiSecret || 'No secret available'
+                                            ) : (
+                                                '••••••••••••••••••••••••••••••••'
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {!secretLoading && apiSecret && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowSecret(!showSecret)}
+                                                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                                >
+                                                    {showSecret ? 'Hide' : 'Show'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCopy}
+                                                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors w-16 text-left"
+                                                >
+                                                    {copied ? 'Copied!' : 'Copy'}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 

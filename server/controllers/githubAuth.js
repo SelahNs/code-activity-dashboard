@@ -5,6 +5,7 @@ const User = require('../models/user')
 const clientID = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
 const { githubFastQueue } = require('../utils/queue')
+const crypto = require('crypto')
 
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
 
@@ -176,11 +177,13 @@ githubAuthRouter.get('/callback', async (request, response) => {
             const finalUsername = isUsernameTaken
                 ? sanitizedLogin + '_' + userData.id
                 : sanitizedLogin;
+            const apiSecret = crypto.randomBytes(32).toString('hex');
 
             newUser = await User.create({
                 username: finalUsername,
                 email: finalEmail,
                 isVerified: true,
+                apiSecret,
                 github: {
                     id: userData.id,
                     username: userData.login,

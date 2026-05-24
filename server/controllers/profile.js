@@ -51,6 +51,26 @@ usersRouter.get('/me', async (request, response) => {
     }
 })
 
+usersRouter.get('/secret', async (request, response) => {
+  if (!request.user) {
+    return response.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    // Explicitly select '+apiSecret' to bypass the select: false setting
+    const user = await User.findById(request.user.id).select('+apiSecret');
+    
+    if (!user) {
+      return response.status(404).json({ error: 'User not found' });
+    }
+
+    // Return only the secret
+    return response.json({ apiSecret: user.apiSecret });
+  } catch (error) {
+    return response.status(500).json({ error: 'Server error' });
+  }
+});
+
 usersRouter.post('/me/password', async (request, response) => {
     const { user } = request
     if (!user) return response.status(401).json({ error: 'unauthorized' })
