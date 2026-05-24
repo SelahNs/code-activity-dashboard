@@ -94,7 +94,7 @@ function activate(context) {
 
 		console.log("Sesseion reset. ready for the next minute");
 		if (userSecret) {
-			fetch('http://localhost:3001/api/activities', {
+			fetch('https://code-activity-dashboard.onrender.com/api/activities', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ function activate(context) {
 	/** @param {string} key */
 	const verifyAndSaveKey = async (key) => {
 		try {
-			const response = await fetch('http://localhost:3001/api/users/verify', {
+			const response = await fetch('https://code-activity-dashboard.onrender.com/api/users/verify', {
 			method: 'GET',
 			headers: {
 				'x-api-key': key
