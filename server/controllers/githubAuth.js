@@ -6,6 +6,8 @@ const clientID = process.env.CLIENT_ID
 const clientSecret = process.env.CLIENT_SECRET
 const { githubFastQueue } = require('../utils/queue')
 
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+
 githubAuthRouter.get('/callback', async (request, response) => {
     const code = request.query.code;
     const installationId = request.query.installation_id;
@@ -68,7 +70,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
 
             await User.updateOne({ _id: request.user.id }, updateData);
             await githubFastQueue.add({userId: request.user.id,accessToken: access_token, githubUsername: userData.login});
-            return response.redirect('http://localhost:5173/settings?status=linked');
+            return response.redirect(`${frontendUrl}/settings?status=linked`);
         }
 
         // ================================================================
@@ -119,7 +121,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
             }));
 
             return response.redirect(
-                `http://localhost:5173/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
+                `${frontendUrl}/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
             );
         }
 
@@ -138,7 +140,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
         const finalEmail = primaryEmailObj ? primaryEmailObj.email : null;
 
         if (!finalEmail) {
-            return response.redirect('http://localhost:5173/login?error=no_email');
+            return response.redirect(`${frontendUrl}/login?error=no_email`);
         }
 
         let newUser;
@@ -223,7 +225,7 @@ githubAuthRouter.get('/callback', async (request, response) => {
         }));
 
         return response.redirect(
-            `http://localhost:5173/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
+            `${frontendUrl}/auth-success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userPayload}`
         );
 
     } catch (error) {

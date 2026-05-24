@@ -32,6 +32,17 @@ export default function SettingsPage() {
         }
     }, [userData]);
 
+    // Read '?tab=' query parameter from URL on load to switch tabs automatically
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get('tab');
+        
+        const validTabs = ['profile', 'appearance', 'account', 'notifications'];
+        if (tabParam && validTabs.includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+    }, []);
+
     // Flattens structure so Zod validator matches inputs exactly
     const flattenProfileForValidation = (data) => {
         if (!data || !data.profile) return {};

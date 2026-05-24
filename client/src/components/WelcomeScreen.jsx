@@ -114,9 +114,9 @@ export default function WelcomeScreen({ user, hasGitHub, hasExtension }) {
                 <Step
                     icon={<FiCode className="w-4 h-4" />}
                     title="Install the VSCode Extension"
-                    description="Track coding time, keystrokes, and your unique code style fingerprint — the human vs AI ratio that makes CodeDash different."
-                    action="https://marketplace.visualstudio.com"
-                    actionLabel="Install Extension"
+                    description="Track coding time, keystrokes, and your style fingerprint. Download the .vsix package directly to manually install it."
+                    action="https://github.com/SelahNs/code-activity-dashboard/raw/main/codetracker-0.0.1.vsix"
+                    actionLabel="Download Extension (.vsix)"
                     done={hasExtension}
                     delay={0.2}
                 />

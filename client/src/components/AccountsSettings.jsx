@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api';
 import useAuthStore from '../stores/useAuthStore';
 import useNotificationStore from '../stores/useNotificationStore';
 import { FiLock, FiMail, FiTrash2, FiAlertTriangle, FiCheckCircle, FiShield } from 'react-icons/fi';
+import { AiFillGithub } from 'react-icons/ai';
 
 // Reusable inputs matching the CodeDash theme variables
 function SettingsInput({ label, name, type, value, onChange, required = false, placeholder = '', hint = '' }) {
@@ -139,6 +140,54 @@ export default function AccountSettings() {
                 </div>
             </div>
 
+            {/* --- GITHUB CONNECTION CARD --- */}
+            <div className="bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-150 dark:border-slate-700/60">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <AiFillGithub className="text-slate-400 w-5 h-5" />
+                        GitHub Connection
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Connect your account to GitHub to access repository data and activity logs.</p>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-slate-150 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
+                        <div className="space-y-1">
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                GitHub Integration
+                            </span>
+                            <div className="flex items-center gap-1.5 text-xs">
+                                {user?.github?.username ? (
+                                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                                        <FiCheckCircle className="w-3.5 h-3.5" /> Connected as @{user.github.username}
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-500 font-semibold">
+                                        <FiAlertTriangle className="w-3.5 h-3.5" /> Not Connected
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {!user?.github?.username ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    window.location.href = 'https://github.com/login/oauth/authorize?client_id=Iv23lisg4lKqAlS3Ox26&scope=repo,user'
+                                }}
+                                className="rounded-lg py-2 px-4 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                                <AiFillGithub className="w-4 h-4" />
+                                Connect GitHub
+                            </button>
+                        ) : (
+                            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                Integration active
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* --- CHANGE PASSWORD CARD --- */}
             <form onSubmit={handlePasswordSubmit} className="bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-150 dark:border-slate-700/60">
@@ -149,29 +198,29 @@ export default function AccountSettings() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Use a strong password with at least 8 characters.</p>
                 </div>
                 <div className="p-6 space-y-4">
-                    <SettingsInput 
-                        label="Current Password" 
-                        name="currentPassword" 
-                        type="password" 
-                        value={passwordData.currentPassword} 
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} 
-                        required 
+                    <SettingsInput
+                        label="Current Password"
+                        name="currentPassword"
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        required
                     />
-                    <SettingsInput 
-                        label="New Password" 
-                        name="newPassword" 
-                        type="password" 
-                        value={passwordData.newPassword} 
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} 
-                        required 
+                    <SettingsInput
+                        label="New Password"
+                        name="newPassword"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        required
                     />
-                    <SettingsInput 
-                        label="Confirm New Password" 
-                        name="confirmPassword" 
-                        type="password" 
-                        value={passwordData.confirmPassword} 
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} 
-                        required 
+                    <SettingsInput
+                        label="Confirm New Password"
+                        name="confirmPassword"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        required
                     />
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-150 dark:border-slate-700/60 flex justify-end">
@@ -247,9 +296,9 @@ export default function AccountSettings() {
                         <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Delete Account</span>
                         <span className="block text-xs text-slate-400 mt-0.5">Permanently delete your account, projects, activity databases, and history records.</span>
                     </div>
-                    <button 
-                        onClick={() => { setDeleteConfirm(''); setShowDeleteModal(true); }} 
-                        type="button" 
+                    <button
+                        onClick={() => { setDeleteConfirm(''); setShowDeleteModal(true); }}
+                        type="button"
                         className="rounded-lg py-2 px-4 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500/50"
                     >
                         Delete my account...
@@ -278,30 +327,30 @@ export default function AccountSettings() {
                             </div>
                             <form onSubmit={handleDeleteAccount}>
                                 <div className="p-6 space-y-4">
-                                    <SettingsInput 
+                                    <SettingsInput
                                         label={
                                             <span>
                                                 Type <strong className="text-slate-900 dark:text-slate-100">delete my account</strong> to confirm
                                             </span>
                                         }
-                                        name="delete_confirm" 
-                                        type="text" 
-                                        value={deleteConfirm} 
-                                        onChange={(e) => setDeleteConfirm(e.target.value)} 
-                                        required 
+                                        name="delete_confirm"
+                                        type="text"
+                                        value={deleteConfirm}
+                                        onChange={(e) => setDeleteConfirm(e.target.value)}
+                                        required
                                     />
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-150 dark:border-slate-700/60 flex justify-end gap-3">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setShowDeleteModal(false)} 
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDeleteModal(false)}
                                         className="rounded-lg py-2 px-4 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                     >
                                         Cancel
                                     </button>
-                                    <button 
-                                        type="submit" 
-                                        disabled={deleteConfirm !== 'delete my account' || deleteSaving} 
+                                    <button
+                                        type="submit"
+                                        disabled={deleteConfirm !== 'delete my account' || deleteSaving}
                                         className="rounded-lg py-2 px-4 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {deleteSaving ? 'Deleting...' : 'Delete Permanently'}

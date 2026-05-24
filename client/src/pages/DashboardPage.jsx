@@ -282,21 +282,28 @@ export default function DashboardPage() {
                     <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex-shrink-0">
                         <FiCode className="w-5 h-5 text-blue-500" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">
                             Unlock Coding Activity
                         </h3>
-                        <p className="text-sm text-slate-400 mb-3">
-                            Install the CodeDash extension to track your coding time, keystrokes, and style fingerprint — works in VSCode and more editors coming soon.
+                        <p className="text-sm text-slate-400 mb-4">
+                            Track your coding time, keystrokes, and style fingerprint in real-time. Since our extension is currently in beta, you can install the `.vsix` package manually.
                         </p>
-                        <a
-                            href="https://marketplace.visualstudio.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-all"
-                        >
-                            Install Extension →
-                        </a>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+                            <a
+                                href="https://github.com/SelahNs/code-activity-dashboard/raw/main/codetracker-0.0.1.vsix"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm flex-shrink-0"
+                            >
+                                Download Extension (.vsix)
+                            </a>
+                            
+                            <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                                <p className="font-semibold text-slate-700 dark:text-slate-300">Quick Manual Installation:</p>
+                                <p>1. Open VS Code &rarr; go to the <strong className="font-semibold">Extensions</strong> tab.</p>
+                                <p>2. Click the <strong className="font-semibold">...</strong> menu in the top right &rarr; select <strong className="font-semibold">Install from VSIX...</strong></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -344,7 +351,7 @@ export default function DashboardPage() {
                                 </span>
                             )}
                             {!userLoading && !hasGitHubData && !hasVSCodeData && (
-                                <Link to="/settings" className="text-blue-500 hover:underline">
+                                <Link to="/settings?tab=account" className="text-blue-500 hover:underline">
                                     Connect integrations →
                                 </Link>
                             )}

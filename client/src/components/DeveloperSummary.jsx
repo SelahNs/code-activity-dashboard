@@ -433,8 +433,8 @@ const buildLevelSentence = (level, xp) => {
 const buildActions = (hasGitHub, hasVSCode, currentStreak, totals) => {
     const actions = []
 
-    if (!hasGitHub) actions.push({ text: 'Connect GitHub', to: '/settings' })
-    if (!hasVSCode) actions.push({ text: 'Install the extension', to: '/settings' })
+    if (!hasGitHub) actions.push({ text: 'Connect GitHub', to: '/settings?tab=account' })
+    if (!hasVSCode) actions.push({ text: 'Install the extension', to: '/settings?tab=account' })
     if (hasGitHub && hasVSCode && currentStreak === 0) {
         actions.push({ text: 'Start a session to open your streak', to: null })
     }

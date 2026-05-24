@@ -7,6 +7,7 @@ const {fetchCommitDetails} = require('./utils/commitDetailJob')
 const { fetchPRDetails } = require('./utils/prDetailJob')
 
 const server = http.createServer(app)
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 const io = new Server(server, {
   cors: { origin: 'http://localhost:5173'}
@@ -22,7 +23,7 @@ io.on('connection', (socket) => {
 
 setIO(io)
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log("Server started sucessfully"))
 
 setInterval(fetchCommitDetails, 5* 60 * 1000)
