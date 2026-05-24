@@ -289,6 +289,23 @@ projectsRouter.patch('/:id/unlink-github', async(request, response) => {
   }
 })
 
+projectsRouter.patch('/:id/pin', async (request, response) => {
+    const { user } = request
+    if (!user) return response.status(401).json({ error: 'unauthorized' })
+    try {
+        const project = await Project.findOne({ _id: request.params.id, user: user._id })
+        if (!project) return response.status(404).json({ error: 'Project not found' })
+        const updated = await Project.findByIdAndUpdate(
+            project._id,
+            { $set: { isPinned: !project.isPinned } },
+            { new: true }
+        )
+        return response.status(200).json(updated)
+    } catch (error) {
+        return response.status(500).json({ error: 'Something went wrong.' })
+    }
+})
+
 projectsRouter.delete('/:id', async (request, response) => {
     const { user } = request;
     if (!user) return response.status(401).json({ error: 'unauthorized' });

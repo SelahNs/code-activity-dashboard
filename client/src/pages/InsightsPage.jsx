@@ -139,7 +139,7 @@ export default function InsightsPage() {
     if (loading) return <Skeleton />
 
     const hasExt = (userData?.stats?.totalSecondsCoded || 0) > 0
-    const hasGH = true || !!(userData?.github?.username || userData?.github?.id)
+    const hasGH = !!(userData?.github?.username || userData?.github?.id)
 
     const langColors = generateColors(langTrend.topLanguages.length)
     const repoColors = generateColors(ws?.topRepos?.length || 1)
@@ -169,6 +169,10 @@ export default function InsightsPage() {
         'The Explorer': '🧭', 'The Architect': '🏗️',
         'The Refactor Goblin': '👺', 'The Builder': '🔨',
     }
+
+    const averageVelocity = ws?.velocityData?.length
+        ? (ws.velocityData.reduce((acc, curr) => acc + (curr.velocity || 0), 0) / ws.velocityData.length)
+        : 0;
 
     return (
         <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -303,7 +307,7 @@ export default function InsightsPage() {
                             {bucketData.length > 0 && (
                                 <Card title="Session distribution" subtitle="How long your sessions typically run" delay={0.15}>
                                     <div className="h-52">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                                             <BarChart data={bucketData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                                                 <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} width={30} />
@@ -328,7 +332,7 @@ export default function InsightsPage() {
                                     delay={0.2}
                                 >
                                     <div className="h-52">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                                             <BarChart data={ws.weekdayHours} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                                                 <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}h`} width={30} />
@@ -354,7 +358,7 @@ export default function InsightsPage() {
                                 className="mb-4"
                             >
                                 <div className="h-44">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minHeight={170}>
                                         <BarChart data={peakHoursData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                                             <XAxis dataKey="hour" axisLine={false} tickLine={false}
                                                 tick={{ fontSize: 10, fill: '#64748b' }} interval={2} />
@@ -417,7 +421,12 @@ export default function InsightsPage() {
                                 className="mb-4"
                             >
                                 <div className="h-56">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer 
+                                        key={`velocity-chart-${ws.velocityData.length}`} 
+                                        width="100%" 
+                                        height="100%" 
+                                        minHeight={220}
+                                    >
                                         <LineChart data={ws.velocityData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                                             <XAxis dataKey="label" axisLine={false} tickLine={false}
                                                 tick={{ fontSize: 11, fill: '#64748b' }} dy={8} interval="preserveStartEnd" />
@@ -428,10 +437,12 @@ export default function InsightsPage() {
                                                 : n === 'Hours' ? formatHours(v)
                                                 : `${v} commits`
                                             } />} />
-                                            <ReferenceLine
-                                                y={ws.velocityData.reduce((s, d) => s + d.velocity, 0) / ws.velocityData.length}
-                                                stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1}
-                                            />
+                                            {averageVelocity > 0 && (
+                                                <ReferenceLine
+                                                    y={averageVelocity}
+                                                    stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1}
+                                                />
+                                            )}
                                             <Line type="monotone" dataKey="velocity" name="Velocity"
                                                 stroke="#10B981" strokeWidth={2.5} dot={false}
                                                 activeDot={{ r: 4, fill: '#10B981', strokeWidth: 0 }} />
@@ -447,7 +458,7 @@ export default function InsightsPage() {
                             {(ws?.prTrend?.length || 0) > 0 && (
                                 <Card title="PR merge rate" subtitle="Opened vs merged PRs — last 6 months" delay={0.4}>
                                     <div className="h-52">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minHeight={200}>
                                             <BarChart data={ws.prTrend} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                                                 <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} width={28} />
@@ -527,7 +538,7 @@ export default function InsightsPage() {
                 {hasExt && langTrend.months.length > 0 && (
                     <Card title="Language evolution" subtitle="How your language mix shifted over 6 months" delay={0.55} className="mb-4">
                         <div className="h-56">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={220}>
                                 <AreaChart data={langTrend.months} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
                                         {langTrend.topLanguages.map((lang, i) => (

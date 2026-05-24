@@ -1,10 +1,9 @@
-// src/components/Navbar.jsx
-
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { FiMenu, FiX, FiLogOut, FiSettings, FiUser } from 'react-icons/fi';
 import { BsCodeSlash } from 'react-icons/bs';
+import { getAvatarComponent } from '../data/avatar'; // Ensure this path matches your file structure
 
 export default function Navbar({ user, onLogout }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,6 +40,9 @@ export default function Navbar({ user, onLogout }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [profileMenuRef]);
 
+    // Fetch the correct preset icon if configured
+    const PresetAvatar = user?.profile?.avatarPresetId ? getAvatarComponent(user.profile.avatarPresetId) : null;
+
     return (
         <nav className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,10 +75,17 @@ export default function Navbar({ user, onLogout }) {
                                 <div className="relative" ref={profileMenuRef}>
                                     <button
                                         onClick={() => setProfileMenuOpen(p => !p)}
-                                        className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                                        className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-150 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 overflow-hidden"
                                     >
                                         <span className="sr-only">Open user menu</span>
-                                        <FiUser className="w-5 h-5" />
+                                        {/* Render custom avatar image, preset, or fallback user icon */}
+                                        {user.profile?.avatarUrl ? (
+                                            <img src={user.profile.avatarUrl} alt="User Menu" className="w-full h-full object-cover" />
+                                        ) : PresetAvatar ? (
+                                            <PresetAvatar className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                                        ) : (
+                                            <FiUser className="w-5 h-5" />
+                                        )}
                                     </button>
                                     <AnimatePresence>
                                         {profileMenuOpen && (
@@ -85,11 +94,14 @@ export default function Navbar({ user, onLogout }) {
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                                                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 py-1 z-50"
+                                                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 py-1 z-50 text-left"
                                             >
                                                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400">Signed in as</p>
-                                                    <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{user.email}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Signed in as <span className="font-semibold text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                                                        {user.profile?.fullName || `@${user.username}`}
+                                                    </span></p>
+                                                    {/* Updated: display fullName if available, fall back to @username */}
+                                                    
                                                 </div>
                                                 <div className="py-1">
                                                     <Link to="/settings" className="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60" onClick={() => setProfileMenuOpen(false)}>

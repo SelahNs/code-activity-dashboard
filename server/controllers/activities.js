@@ -1,6 +1,7 @@
 const activitiesRouter = require('express').Router()
 const Activity = require('../models/activity')
 const User = require('../models/user')
+const { detectFrameworks } = require('../utils/stackHelper') // Imported helper
 
 activitiesRouter.get('/', async (request, response) => {
     const user = request.user
@@ -16,20 +17,23 @@ activitiesRouter.get('/', async (request, response) => {
     }
 
     const query = Activity.find(filter).sort({ capturedAt: -1 })
-     if (limit) query.limit(parseInt(limit))
+    if (limit) query.limit(parseInt(limit))
 
     const activities = await query
     response.json(activities)
 })
 
 activitiesRouter.post('/', async (request, response) => {
-  const {body,user} = request;
+  const { body, user } = request;
   if (user) {
     const preparedActivities = body.map(element => {
+      // Analyze active framework indicators inside workspace folder and active path
+      const detectedFws = detectFrameworks(element);
       return {
         ...element,
         user: user._id,
-        humanCyborgRatio: element.charsAdded === 0? 1: element.keystrokes/ element.charsAdded,
+        frameworks: detectedFws,
+        humanCyborgRatio: element.charsAdded === 0 ? 1 : element.keystrokes / element.charsAdded,
         capturedAt: element.timeStamp
       }
     })
@@ -41,10 +45,16 @@ activitiesRouter.post('/', async (request, response) => {
     const totalLinesAdded = preparedActivities.reduce((sum, p) => sum + p.linesAdded, 0)
     const totalLinesDeleted = preparedActivities.reduce((sum, p) => sum + p.linesDeleted, 0)
     const totalSecondsBatch = preparedActivities.reduce((sum, p) => sum + p.duration/1000, 0)
+    
     const languageTotals = {}
     const editorTotals = {}
     const projectTotals = {}
     const independentFileTotals = {}
+    const languageCharTotals = {}
+    
+    // Framework-specific accumulation variables
+    const frameworkTotals = {}
+    const frameworkTimeTotals = {}
     
     const updateInstruction = { $inc: {
         "stats.totalKeystrokes": totalKeystrokes,
@@ -54,8 +64,6 @@ activitiesRouter.post('/', async (request, response) => {
         "stats.totalLinesDeleted": totalLinesDeleted,
         "stats.totalSecondsCoded": totalSecondsBatch
     }}
-
-    const languageCharTotals = {}
     
     preparedActivities.forEach(p => {
       languageTotals[p.language] = (languageTotals[p.language] || 0) + p.duration/1000
@@ -68,6 +76,13 @@ activitiesRouter.post('/', async (request, response) => {
         independentFileTotals[p.independentFile] = (independentFileTotals[p.independentFile] || 0) + p.duration/1000
       }
 
+      // Distribute detected framework frequency and timing
+      if (p.frameworks && p.frameworks.length > 0) {
+        p.frameworks.forEach(fw => {
+          frameworkTotals[fw] = (frameworkTotals[fw] || 0) + 1;
+          frameworkTimeTotals[fw] = (frameworkTimeTotals[fw] || 0) + p.duration/1000;
+        });
+      }
     })
 
     if (Object.entries(projectTotals).length > 0) {
@@ -78,8 +93,8 @@ activitiesRouter.post('/', async (request, response) => {
 
     if (Object.entries(independentFileTotals).length > 0) {
       Object.entries(independentFileTotals).forEach(([keyword, value]) => {
-      updateInstruction.$inc[`skills.independentFiles.${keyword}`] = value
-    })
+        updateInstruction.$inc[`skills.independentFiles.${keyword}`] = value
+      })
     }
     
     Object.entries(languageTotals).forEach(([keyword, value]) => {
@@ -87,84 +102,96 @@ activitiesRouter.post('/', async (request, response) => {
     })
 
     Object.entries(languageCharTotals).forEach(([keyword, value]) => {
-    updateInstruction.$inc[`skills.languageChars.${keyword}`] = value
+      updateInstruction.$inc[`skills.languageChars.${keyword}`] = value
     })
 
     Object.entries(editorTotals).forEach(([keyword, value]) => {
       updateInstruction.$inc[`skills.editors.${keyword}`] = value
     })
 
-    const updatedUser = await User.findByIdAndUpdate(
-    user.id,
-    updateInstruction,
-    { new: true }
-);
-
-// --- Calculate everything first ---
-
-// 1. Human cyborg ratio
-const newRatio = updatedUser.stats.totalCharsAdded === 0
-    ? 1
-    : updatedUser.stats.totalKeystrokes / updatedUser.stats.totalCharsAdded;
-
-// 2. Streak
-const now = new Date();
-const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-const lastActive = updatedUser.lastActiveDate
-    ? new Date(
-        updatedUser.lastActiveDate.getFullYear(),
-        updatedUser.lastActiveDate.getMonth(),
-        updatedUser.lastActiveDate.getDate()
-    )
-    : null;
-
-const yesterday = new Date(today);
-yesterday.setDate(today.getDate() - 1);
-
-let newCurrentStreak = updatedUser.stats.currentStreak;
-let newLongestStreak = updatedUser.stats.longestStreak;
-
-if (!lastActive) {
-    newCurrentStreak = 1;
-} else if (lastActive.getTime() === today.getTime()) {
-    // already coded today, no change
-} else if (lastActive.getTime() === yesterday.getTime()) {
-    newCurrentStreak = updatedUser.stats.currentStreak + 1;
-    newLongestStreak = Math.max(newCurrentStreak, updatedUser.stats.longestStreak);
-} else {
-    newCurrentStreak = 1;
-}
-
-// 3. XP and level
-const baseXP =
-    (totalSecondsBatch * 0.3) +
-    (totalLinesAdded * 1.5) +
-    (totalLinesDeleted * 0.8) +
-    (totalKeystrokes * 0.05);
-
-const streakBonus = newCurrentStreak * 5;
-const earnedXP = Math.round((baseXP + streakBonus) * newRatio);
-const newTotalXP = updatedUser.stats.xp + earnedXP;
-const newLevel = Math.floor(Math.sqrt(newTotalXP / 100)) + 1;
-
-// --- One single $set for everything ---
-await User.findByIdAndUpdate(user.id, {
-    $set: {
-        'stats.humanCyborgRatio': newRatio,
-        'stats.currentStreak': newCurrentStreak,
-        'stats.longestStreak': newLongestStreak,
-        'stats.xp': newTotalXP,
-        'stats.level': newLevel,
-        'lastActiveDate': now
+    // Inject Framework frequency updates to Mongoose $inc instruction
+    if (Object.entries(frameworkTotals).length > 0) {
+      Object.entries(frameworkTotals).forEach(([keyword, value]) => {
+        updateInstruction.$inc[`skills.frameworks.${keyword}`] = value
+      })
     }
-});
+
+    // Inject Framework session duration updates to Mongoose $inc instruction
+    if (Object.entries(frameworkTimeTotals).length > 0) {
+      Object.entries(frameworkTimeTotals).forEach(([keyword, value]) => {
+        updateInstruction.$inc[`skills.frameworksTime.${keyword}`] = value
+      })
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user.id,
+        updateInstruction,
+        { new: true }
+    );
+
+    // --- Recalculate Streaks, Levels and XP ---
+
+    // 1. Human cyborg ratio
+    const newRatio = updatedUser.stats.totalCharsAdded === 0
+        ? 1
+        : updatedUser.stats.totalKeystrokes / updatedUser.stats.totalCharsAdded;
+
+    // 2. Streak
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastActive = updatedUser.lastActiveDate
+        ? new Date(
+            updatedUser.lastActiveDate.getFullYear(),
+            updatedUser.lastActiveDate.getMonth(),
+            updatedUser.lastActiveDate.getDate()
+        )
+        : null;
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    let newCurrentStreak = updatedUser.stats.currentStreak;
+    let newLongestStreak = updatedUser.stats.longestStreak;
+
+    if (!lastActive) {
+        newCurrentStreak = 1;
+    } else if (lastActive.getTime() === today.getTime()) {
+        // already coded today, no change
+    } else if (lastActive.getTime() === yesterday.getTime()) {
+        newCurrentStreak = updatedUser.stats.currentStreak + 1;
+        newLongestStreak = Math.max(newCurrentStreak, updatedUser.stats.longestStreak);
+    } else {
+        newCurrentStreak = 1;
+    }
+
+    // 3. XP and level
+    const baseXP =
+        (totalSecondsBatch * 0.3) +
+        (totalLinesAdded * 1.5) +
+        (totalLinesDeleted * 0.8) +
+        (totalKeystrokes * 0.05);
+
+    const streakBonus = newCurrentStreak * 5;
+    const earnedXP = Math.round((baseXP + streakBonus) * newRatio);
+    const newTotalXP = updatedUser.stats.xp + earnedXP;
+    const newLevel = Math.floor(Math.sqrt(newTotalXP / 100)) + 1;
+
+    await User.findByIdAndUpdate(user.id, {
+        $set: {
+            'stats.humanCyborgRatio': newRatio,
+            'stats.currentStreak': newCurrentStreak,
+            'stats.longestStreak': newLongestStreak,
+            'stats.xp': newTotalXP,
+            'stats.level': newLevel,
+            'lastActiveDate': now
+        }
+    });
 
     return response.status(201).json(sendActivities)
 
   } else {
     return response.status(401).json({error: 'unauthorized'})
   }
-
 })
 
 module.exports = activitiesRouter

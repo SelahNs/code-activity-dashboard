@@ -17,10 +17,9 @@ export const avatarOptions = [
     { id: 'target', Component: TargetIcon },
     { id: 'cpu-chip', Component: CpuChipIcon },
 ];
+
 export function getAvatarComponent(avatarId) {
     if (!avatarId) return UserIcon;
-
     const selectedOption = avatarOptions.find(opt => opt.id === avatarId);
-
     return selectedOption ? selectedOption.Component : UserIcon;
 }

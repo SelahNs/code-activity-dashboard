@@ -19,7 +19,6 @@ usersRouter.get('/me', async (request, response) => {
         ])
         if (!fullUser) return response.status(404).json({ error: 'user not found' })
 
-        // Aggregate GitHub bytes per language across all repos
         const githubLanguages = {}
         for (const repo of repos) {
             const langMap = repo.languages instanceof Map
@@ -30,7 +29,6 @@ usersRouter.get('/me', async (request, response) => {
             }
         }
 
-        // Aggregate framework repo counts across all repos
         const githubFrameworks = {}
         for (const repo of repos) {
             const fwMap = repo.frameworks instanceof Map
@@ -41,18 +39,46 @@ usersRouter.get('/me', async (request, response) => {
             }
         }
 
-        // userJson must be declared BEFORE we attach things to it
         const userJson = fullUser.toJSON()
         if (!userJson.skills) userJson.skills = {}
         userJson.skills.githubLanguages = githubLanguages
         userJson.skills.githubFrameworks = githubFrameworks
-        // skills.languages (extension seconds) and skills.frameworksTime
-        // already come from the DB via fullUser.toJSON()
-
+        
         return response.status(200).json(userJson)
     } catch (error) {
         console.error('GET /users/me error:', error.message)
         return response.status(500).json({ error: 'something went wrong' })
+    }
+})
+
+usersRouter.post('/me/password', async (request, response) => {
+    const { user } = request
+    if (!user) return response.status(401).json({ error: 'unauthorized' })
+
+    const { currentPassword, newPassword } = request.body
+    if (!currentPassword || !newPassword) {
+        return response.status(400).json({ error: 'currentPassword and newPassword are required' })
+    }
+    if (newPassword.length < 8) {
+        return response.status(400).json({ error: 'Password must be at least 8 characters' })
+    }
+
+    try {
+        const bcrypt = require('bcrypt')
+        const fullUser = await User.findById(user._id).select('+passwordHash')
+        if (!fullUser.passwordHash) {
+            return response.status(400).json({ error: 'GitHub-only accounts cannot change password this way' })
+        }
+        const valid = await bcrypt.compare(currentPassword, fullUser.passwordHash)
+        if (!valid) {
+            return response.status(400).json({ error: 'Current password is incorrect' })
+        }
+        const newHash = await bcrypt.hash(newPassword, 10)
+        await User.findByIdAndUpdate(user._id, { $set: { passwordHash: newHash } })
+        return response.status(200).json({ message: 'Password changed successfully' })
+    } catch (error) {
+        console.error('Change password error:', error)
+        return response.status(500).json({ error: 'Something went wrong.' })
     }
 })
 
@@ -71,7 +97,7 @@ usersRouter.put('/me', async (request, response) => {
             const value = isSocial ? body.socials?.[key] : body[field]
 
             if (value !== undefined) {
-                updateFields[`profile.${field}`] = value  // fixed — both cases identical
+                updateFields[`profile.${field}`] = value  
                 if (!newManuallyEdited.includes(field)) {
                     newManuallyEdited.push(field)
                 }

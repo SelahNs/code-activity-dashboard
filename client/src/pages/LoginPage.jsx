@@ -108,7 +108,7 @@ export default function LoginPage() {
             await login(response, rememberMe);
             console.log('After login store:', useAuthStore.getState()); 
 
-            navigate('/dashboard');
+            navigate('/');
         } catch (error) {
     const errorData = error.data || {};
     setShakeButton(p => p + 1);

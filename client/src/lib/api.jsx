@@ -100,19 +100,10 @@ export const authApiFetch = async (endpoint, options = {}) => {
 
 export const apiClient = {
     getMe: () => authApiFetch('/api/users/me'),
-    updateMe: (profileData, avatarFile) => {
-        const formData = new FormData();
-        Object.keys(profileData).forEach(key => {
-            formData.append(key, profileData[key])
-        });
-
-        if (avatarFile) {
-            formData.append('avatar', avatarFile);
-        }
-
+    updateMe: (profileData) => {
         return authApiFetch('/api/users/me', {
             method: 'PUT',
-            body: formData, // no JSON.stringify here
+            body: JSON.stringify(profileData)
         });
     },
     getProjects: () => authApiFetch('/api/projects'),
@@ -142,6 +133,9 @@ export const apiClient = {
     unlinkGithub: (id) => authApiFetch(`/api/projects/${id}/unlink-github`, {
         method: 'PATCH'
     }),
+    pinProject: (id) => authApiFetch(`/api/projects/${id}/pin`, { method: 'PATCH' }),
+    getProjectCommits: (repo, limit = 10) => authApiFetch(`/api/commits?repo=${encodeURIComponent(repo)}&limit=${limit}`),
+
     getRepos: () => authApiFetch('/api/repos'),
     getGithubStats: () => authApiFetch(`/api/stats/github`),
     getBests: () => authApiFetch('/api/stats/bests'),
@@ -149,4 +143,8 @@ export const apiClient = {
     getLanguageTrend: () => authApiFetch('/api/stats/language-trend'),
     getCodingRhythm: () => authApiFetch('/api/stats/coding-rhythm'),
     getWorkStyle: () => authApiFetch('/api/stats/work-style'),
+    changePassword: (data) => authApiFetch('/api/users/me/password', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
 }

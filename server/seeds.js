@@ -359,6 +359,79 @@ const run = async () => {
         ])
 
         console.log('Inserted releases')
+        const newProjectsToSeed = [
+    {
+        title: "Code Activity Dashboard",
+        description: "A full-stack application to visualize coding habits and showcase work. Real-time charts, GitHub import, VS Code integration and a beautiful UI.",
+        status: "active",
+        tags: ["React", "Tailwind", "Django", "Framer Motion"],
+        isPinned: false,
+        github: {
+            repoId: 1010101,
+            fullName: "yourname/code-activity-dashboard",
+            url: "https://github.com/yourname/code-activity-dashboard",
+            stars: 150,
+            forks: 8,
+            language: "JavaScript",
+            lastCommit: new Date("2026-05-20T11:00:00Z"),
+            readme: "# Code Activity Dashboard\n\nA modern tool designed to track your daily coding activities directly from your workspace and present them in a gorgeous public-facing portfolio."
+        },
+        liveUrl: "https://your-live-demo.netlify.app",
+        docsUrl: "https://github.com/yourname/code-activity-dashboard#readme",
+        gallery: [
+            { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80", alt: "Dashboard Home Preview", type: "image" },
+            { url: "https://media.giphy.com/media/3o7TKsQfi1X9fJ8p6k/giphy.gif", alt: "Activity chart demo", type: "gif" }
+        ],
+        totalSecondsCoded: 145800, // ~40.5 hours
+        lastActiveDate: new Date("2025-08-28T12:00:00Z"),
+        visibility: "public"
+    },
+    {
+        title: "AI Note Taking App",
+        description: "An intelligent note-taking concept with summarization and search capabilities.",
+        status: "active",
+        tags: ["AI", "Next.js", "Python"],
+        isPinned: false,
+        github: null,
+        liveUrl: null,
+        docsUrl: null,
+        gallery: [],
+        totalSecondsCoded: 15000, // ~4.1 hours
+        lastActiveDate: new Date("2025-07-15T09:00:00Z"),
+        visibility: "private"
+    },
+    {
+        title: "E-Commerce Storefront",
+        description: "Modern e-commerce storefront built with React and GraphQL.",
+        status: "completed",
+        tags: ["React", "GraphQL", "Shopify"],
+        isPinned: false,
+        github: {
+            repoId: 2020202,
+            fullName: "yourname/ecommerce-storefront",
+            url: "https://github.com/yourname/ecommerce-storefront",
+            stars: 42,
+            forks: 6,
+            language: "TypeScript",
+            lastCommit: new Date("2024-12-20T09:00:00Z"),
+            readme: "# Shopify React Storefront\n\nHigh-performance custom storefront utilizing Shopify GraphQL API configurations."
+        },
+        liveUrl: "https://ecommerce-demo.example.com",
+        docsUrl: null,
+        gallery: [],
+        totalSecondsCoded: 356400, // ~99 hours
+        lastActiveDate: new Date("2024-12-20T09:00:00Z"),
+        visibility: "public"
+    }
+];
+
+    const projectsWithUser = newProjectsToSeed.map(project => ({
+        ...project,
+        user: USER_ID 
+    }));
+
+await Project.insertMany(projectsWithUser);
+console.log('Inserted projects')
         console.log('Done!')
     } catch (error) {
         console.error(error)

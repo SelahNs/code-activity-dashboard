@@ -16,6 +16,7 @@ const activitySchema = mongoose.Schema({
   humanCyborgRatio: Number,
   project: String,
   independentFile: String,
+  frameworks: [String],
   capturedAt: Date
 }, { timestamps: true })
 

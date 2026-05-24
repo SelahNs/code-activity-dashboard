@@ -1,26 +1,30 @@
 {
-  "name": "extension",
-  "displayName": "extension",
-  "description": "Tracks user activities ",
+  "name": "codetracker",
+  "displayName": "CodeTracker",
+  "description": "Tracks user activities and automatically syncs metrics with the CodeDash dashboard.",
   "version": "0.0.1",
+  "publisher": "codedash",
   "engines": {
     "vscode": "^1.109.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": ["*"],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "extension.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "extension.helloWorld",
+        "title": "Hello World"
+      }
+    ]
   },
   "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "vscode-test"
+    "package": "vsce package",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@types/vscode": "^1.109.0",

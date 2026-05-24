@@ -68,12 +68,14 @@ statsRouter.get('/bests', async (request, response) => {
     ] = await Promise.all([
         Activity.aggregate([
             { $match: { user: user._id } },
-            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$capturedAt' } }, totalSeconds: { $sum: '$duration' }, totalLines: { $sum: '$linesAdded' } }},
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$capturedAt' } }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } }, totalLines: { $sum: '$linesAdded' } }},
             { $sort: { totalSeconds: -1 } }, { $limit: 1 }
         ]),
         Activity.aggregate([
             { $match: { user: user._id } },
-            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: '$duration' }, firstDay: { $min: '$capturedAt' } }},
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } }, firstDay: { $min: '$capturedAt' } }},
             { $sort: { totalSeconds: -1 } }, { $limit: 1 }
         ]),
         Activity.findOne({ user: user._id }).sort({ duration: -1 }).lean(),
@@ -84,7 +86,8 @@ statsRouter.get('/bests', async (request, response) => {
         ]),
         Activity.aggregate([
             { $match: { user: user._id } },
-            { $group: { _id: { $hour: '$capturedAt' }, totalSeconds: { $sum: '$duration' } }},
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: { $hour: '$capturedAt' }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } } }},
             { $sort: { _id: 1 } }
         ]),
         Activity.aggregate([
@@ -171,10 +174,15 @@ statsRouter.get('/bests', async (request, response) => {
     }
     const favoriteLanguageBySize = Object.entries(githubLanguages).sort((a,b) => b[1]-a[1])[0] || null
 
+    // Convert longestSession duration to seconds for frontend consistency
+    const convertedLongestSession = longestSession
+        ? { ...longestSession, duration: longestSession.duration / 1000 }
+        : null
+
     return response.json({
         bestDayByHours: bestDayByHours[0] || null,
         bestWeekByHours: bestWeekByHours[0] || null,
-        longestSession: longestSession || null,
+        longestSession: convertedLongestSession,
         mostKeystrokesDay: mostKeystrokesDay[0] || null,
         favoriteTimeOfDay, timeOfDaySlots, peakWindow,
         totalDaysCoded: totalDaysCoded[0]?.total || 0,
@@ -201,7 +209,8 @@ statsRouter.get('/weekly-trend', async (request, response) => {
     const [activityWeeks, commitWeeks] = await Promise.all([
         Activity.aggregate([
             { $match: { user: user._id, capturedAt: { $gte: oneYearAgo } } },
-            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: '$duration' }, firstDay: { $min: '$capturedAt' } }},
+            // Convert milliseconds to seconds
+            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } }, firstDay: { $min: '$capturedAt' } }},
             { $sort: { '_id.year': 1, '_id.week': 1 } }
         ]),
         Commit.aggregate([
@@ -214,6 +223,7 @@ statsRouter.get('/weekly-trend', async (request, response) => {
     const weekMap = {}
     for (const w of activityWeeks) {
         const key = `${w._id.year}-${w._id.week}`
+        // Convert seconds to hours (divide by 3600)
         weekMap[key] = { key, label: new Date(w.firstDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), firstDay: w.firstDay, hours: w.totalSeconds / 3600, commits: 0 }
     }
     for (const w of commitWeeks) {
@@ -235,7 +245,8 @@ statsRouter.get('/language-trend', async (request, response) => {
 
     const monthly = await Activity.aggregate([
         { $match: { user: user._id, capturedAt: { $gte: sixMonthsAgo } } },
-        { $group: { _id: { year: { $year: '$capturedAt' }, month: { $month: '$capturedAt' }, language: '$language' }, totalSeconds: { $sum: '$duration' } }},
+        // Convert milliseconds to seconds
+        { $group: { _id: { year: { $year: '$capturedAt' }, month: { $month: '$capturedAt' }, language: '$language' }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } } }},
         { $sort: { '_id.year': 1, '_id.month': 1 } }
     ])
 
@@ -249,6 +260,7 @@ statsRouter.get('/language-trend', async (request, response) => {
         const date = new Date(e._id.year, e._id.month - 1, 1)
         const label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
         if (!monthMap[label]) { monthMap[label] = { label, date }; for (const l of topLanguages) monthMap[label][l] = 0 }
+        // Convert seconds to hours (divide by 3600)
         monthMap[label][e._id.language] = e.totalSeconds / 3600
     }
 
@@ -285,7 +297,8 @@ statsRouter.get('/work-style', async (request, response) => {
         }).lean(),
         Activity.aggregate([
             { $match: { user: user._id } },
-            { $group: { _id: { $dayOfWeek: '$capturedAt' }, totalSeconds: { $sum: '$duration' } }}
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: { $dayOfWeek: '$capturedAt' }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } } }}
         ]),
         Activity.aggregate([
             { $match: { user: user._id } },
@@ -294,11 +307,13 @@ statsRouter.get('/work-style', async (request, response) => {
         ]),
         Activity.aggregate([
             { $match: { user: user._id, capturedAt: { $gte: thirtyDaysAgo } } },
-            { $group: { _id: null, total: { $sum: '$duration' } } }
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: null, total: { $sum: { $divide: ['$duration', 1000] } } } }
         ]),
         Activity.aggregate([
             { $match: { user: user._id, capturedAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-            { $group: { _id: null, total: { $sum: '$duration' } } }
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: null, total: { $sum: { $divide: ['$duration', 1000] } } } }
         ]),
         Commit.countDocuments({ user: user._id, timestamp: { $gte: thirtyDaysAgo } }),
         Commit.countDocuments({ user: user._id, timestamp: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
@@ -319,7 +334,8 @@ statsRouter.get('/work-style', async (request, response) => {
         ]),
         Activity.aggregate([
             { $match: { user: user._id, capturedAt: { $gte: oneYearAgo } } },
-            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: '$duration' }, firstDay: { $min: '$capturedAt' } }}
+            // Convert millisecond duration to standard seconds during sum phase
+            { $group: { _id: { year: { $isoWeekYear: '$capturedAt' }, week: { $isoWeek: '$capturedAt' } }, totalSeconds: { $sum: { $divide: ['$duration', 1000] } }, firstDay: { $min: '$capturedAt' } }}
         ]),
         Commit.aggregate([
             { $match: { user: user._id, timestamp: { $gte: oneYearAgo } } },
@@ -377,6 +393,7 @@ statsRouter.get('/work-style', async (request, response) => {
     for (const d of DAY_NAMES) weekdayMap[d] = { label: d, hours: 0 }
     for (const w of weekdayAgg) {
         const idx = w._id === 1 ? 6 : w._id - 2
+        // Convert seconds to hours (divide by 3600)
         weekdayMap[DAY_NAMES[idx]].hours = parseFloat((w.totalSeconds / 3600).toFixed(2))
     }
     const weekdayHours = Object.values(weekdayMap)
@@ -392,14 +409,15 @@ statsRouter.get('/work-style', async (request, response) => {
     const distinctDays = new Set(allActivities.map(a => new Date(a.capturedAt).toISOString().split('T')[0])).size
     const consistencyScore = Math.min(100, Math.round((distinctDays / possibleDays) * 100))
 
-    const thisMonthMs = thisMonthAgg[0]?.total || 0
-    const lastMonthMs = lastMonthAgg[0]?.total || 0
-    const codingMomentumPct = lastMonthMs > 0 ? Math.round(((thisMonthMs - lastMonthMs) / lastMonthMs) * 100) : 0
+    const thisMonthSec = thisMonthAgg[0]?.total || 0
+    const lastMonthSec = lastMonthAgg[0]?.total || 0
+    const codingMomentumPct = lastMonthSec > 0 ? Math.round(((thisMonthSec - lastMonthSec) / lastMonthSec) * 100) : 0
     const commitMomentumPct = githubLastMonth > 0 ? Math.round(((githubThisMonth - githubLastMonth) / githubLastMonth) * 100) : 0
 
     const velMap = {}
     for (const w of velocityActivity) {
         const key = `${w._id.year}-${w._id.week}`
+        // Convert seconds to hours (divide by 3600)
         velMap[key] = { key, firstDay: w.firstDay, hours: w.totalSeconds / 3600, commits: 0 }
     }
     for (const w of velocityCommits) {
@@ -461,8 +479,8 @@ statsRouter.get('/work-style', async (request, response) => {
         weekendPct, nightOwlScore,
         avgProjectsPerDay: parseFloat(avgProjectsPerDay.toFixed(1)), projectSwitchLabel,
         codingMomentumPct, commitMomentumPct,
-        thisMonthHours: parseFloat((thisMonthMs / 3600000).toFixed(1)),
-        lastMonthHours: parseFloat((lastMonthMs / 3600000).toFixed(1)),
+        thisMonthHours: parseFloat((thisMonthSec / 3600).toFixed(1)),
+        lastMonthHours: parseFloat((lastMonthSec / 3600).toFixed(1)),
         velocityData, prTrend, topRepos,
         githubThisMonth, githubLastMonth,
         archetype, archetypeDesc,

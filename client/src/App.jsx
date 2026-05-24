@@ -23,6 +23,7 @@ import useNotificationStore from "./stores/useNotificationStore";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import AuthSuccessPage from "./pages/AuthSuccessPage"
+import CommunityPage from "./pages/CommunityPage"
 
 // We'll build this next
 import LandingPage from "./pages/LandingPage";
@@ -59,6 +60,8 @@ export default function App() {
                             <Route path="/" element={<DashboardPage />} />
                             <Route path="/settings" element={<SettingsPage user={currentUser} />} />
                             <Route path="/insights" element={<InsightsPage/>} />
+                                                        <Route path="/community" element={<CommunityPage/>} />
+
                             <Route path="/users" element={<UsersPage />} />
                             <Route path="/projects" element={<ProjectsPage />} />
                             <Route path="/projects/:projectId" element={<ProjectDetailPage />} />

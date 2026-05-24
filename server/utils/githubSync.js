@@ -5,7 +5,7 @@ const Commit = require('../models/commit');
 const PullRequest = require('../models/pullRequest');
 const Release = require('../models/release');
 const { githubCommitQueue, githubPRQueue } = require('./queue');
-const { KNOWN_STACK, DISPLAY_NAMES } = require('./knownStack');
+const { KNOWN_STACK, DISPLAY_NAMES } = require('./stackHelper');
 
 const GITHUB_HEADERS = (accessToken) => ({
     'Authorization': `Bearer ${accessToken}`,

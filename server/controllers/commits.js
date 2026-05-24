@@ -6,14 +6,15 @@ commitsRouter.get('/', async (request, response) => {
     if (!user) return response.status(401).json({ error: 'unauthorized' })
 
     try {
-        const limit = parseInt(request.query.limit) || 20
+        const { limit, repo } = request.query
+        const filter = { user: user._id }
+        if (repo) filter.repo = repo
 
-        const commits = await Commit.find({ user: user.id })
-            .sort({ timestamp: -1 })
-            .limit(limit)
-            .select('-detailsFetched')
+        const query = Commit.find(filter).sort({ timestamp: -1 })
+        if (limit) query.limit(parseInt(limit))
 
-        return response.status(200).json(commits)
+        const commits = await query
+        response.json(commits)
     } catch (error) {
         console.error('GET /commits error:', error.message)
         return response.status(500).json({ error: 'something went wrong' })
